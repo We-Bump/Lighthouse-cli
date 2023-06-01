@@ -1,0 +1,27 @@
+{
+    "name":"WeBump #4",
+    "image":"4.png",
+    "description":"WeBump is a nft collection on sei",
+    "attributes":[
+        {
+            "trait_type":"Background",
+            "value":"Red"
+        },
+        {
+            "trait_type":"Eyes",
+            "value":"Blue"
+        },
+        {
+            "trait_type":"Mouth",
+            "value":"Green"
+        },
+        {
+            "trait_type":"Head",
+            "value":"Yellow"
+        },
+        {
+            "trait_type":"Body",
+            "value":"Purple"
+        }
+    ]
+}
