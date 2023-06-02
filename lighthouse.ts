@@ -7,13 +7,12 @@ import { DirectSecp256k1HdWallet } from "@cosmjs/proto-signing"
 import { SigningCosmWasmClient } from "@cosmjs/cosmwasm-stargate"
 import { GasPrice } from "@cosmjs/stargate";
 import { MerkleTree } from 'merkletreejs';
-import { Decimal } from "@cosmjs/math";
 import BigNumber from 'bignumber.js';
 import { processCliUpload } from "./arweave"
 import { keccak_256 } from '@noble/hashes/sha3'
 import path from "path"
 
-const LIGHTHOUSE_CONTRACT = "sei1ta2v57k0pe76le88krhz24772e077qk4mxgywjy35vgwehffmyms9krdey"
+const LIGHTHOUSE_CONTRACT = "sei13xt7vyffty38yads7nfe8ydysv3z82ege0ju8sf6sdk5c6aw99ds9xvjtx"
 
 export const saveLogs = (logs: any) => {
     //add logs to log file if exists
