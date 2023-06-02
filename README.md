@@ -3,9 +3,36 @@
 
 Lighthouse is a powerful command line interface tool designed to facilitate the interaction with Non-Fungible Tokens (NFTs) on the SEI blockchain. It allows users to easily update and deploy NFT collections.
 
-## Installation
+## Installion
 
-To install Lighthouse, visit the [Releases](https://github.com/We-Bump/Lighthouse-cli/releases) page of our GitHub repository and download the appropriate version for your operating system (Windows, Linux, or macOS). 
+From your command line:
+```bash
+# Install lighthouse globally
+$ npm install -g @we-bump/lighthouse-cli
+
+# Run the app
+$ lighthouse
+```
+
+## Compile Source Code
+
+From your command line:
+```bash
+# Clone this repository 
+$ git clone https://github.com/We-Bump/Lighthouse-cli
+
+# Go into the repository
+$ cd Lighthouse-cli
+
+# Install dependencies
+$ npm install
+
+# Install ts-node globally
+$ npm install -g ts-node
+
+# Run the app
+$ ts-node lightouse.ts
+```
 
 ## Usage
 
@@ -90,7 +117,8 @@ Arweave node url `optional` `(default https://arweave.net)`
 Lighthouse relies on a `config.json` file for configuration of NFT collections. If the file does not exist, the CLI will automatically guide you through creating a default one.
 ```json
 {
-  "private_key": "your mnemonic keyphrase",
+  "mnemonic": "your mnemonic keyphrase",
+  "rpc": "rpc url",
   "name": "collection-name",
   "symbol": "collection-symbol",
   "description": "",
@@ -119,7 +147,9 @@ Lighthouse relies on a `config.json` file for configuration of NFT collections. 
   ]
 }
 ```
-`private_key` - memonic keyphrase to use in the Lighthouse
+`mnemonic` - memonic keyphrase to use in the Lighthouse
+
+`rpc` - rpc url of the blockchain
 
 `name` - name of the collection
 
@@ -152,7 +182,6 @@ Lighthouse relies on a `config.json` file for configuration of NFT collections. 
 `start_time` - start time of minting to start for the group (utc)
 
 `end_time` - end time of mint (utc)
-
 
 
 ## Contributing

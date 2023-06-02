@@ -1,9 +1,11 @@
 {
-  "name": "lighthouse",
+  "name": "@we-bump/lighthouse-cli",
   "version": "0.1.0",
-  "description": "",
+  "description": "A CLI tool to create NFT collections on SEI and upload metadata to Arweave",
   "main": "dist/lighthouse.js",
-  "bin": "dist/lighthouse.js",
+  "bin": {
+    "lighthouse": "dist/lighthouse.js"
+  },
   "scripts": {
     "start": "ts-node lighthouse.ts",
     "build": "npx tsc"

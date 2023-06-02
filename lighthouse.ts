@@ -8,13 +8,46 @@ import { SigningCosmWasmClient } from "@cosmjs/cosmwasm-stargate"
 import { GasPrice } from "@cosmjs/stargate";
 import { MerkleTree } from 'merkletreejs';
 import { Decimal } from "@cosmjs/math";
-import crypto from 'crypto';
 import BigNumber from 'bignumber.js';
 import { processCliUpload } from "./arweave"
 import { keccak_256 } from '@noble/hashes/sha3'
+import path from "path"
 
-const LIGHTHOUSE_CONTRACT = "sei1jzzv6r5uckwd64n6qan3suzker0kct5w565f6529zjyumfcx96kqg9pfh2"
-const RPC = "http://127.0.0.1:26657/"
+const LIGHTHOUSE_CONTRACT = "sei1ta2v57k0pe76le88krhz24772e077qk4mxgywjy35vgwehffmyms9krdey"
+
+export const saveLogs = (logs: any) => {
+    //add logs to log file if exists
+    if (fs.existsSync("./logs.json")) {
+        let logFile: any = []
+        try {
+            logFile = JSON.parse(fs.readFileSync("./logs.json", "utf-8"))
+            logFile.push(logs)
+        } catch (e) {
+            logFile = logs
+        }
+        fs.writeFileSync("./logs.json", JSON.stringify(logFile, null, 4))
+    } else {
+        fs.writeFileSync("./logs.json", JSON.stringify(logs, null, 4))
+    }
+}
+
+const loadConfig = () => {
+    //check if config exists
+    if (fs.existsSync("./config.json")) {
+        let config = JSON.parse(fs.readFileSync("./config.json", "utf-8"))
+
+        if (!config.mnemonic || !config.rpc) {
+            console.log(chalk.red("Config file is missing required fields (mnemonic, rpc)"))
+            process.exit(1)
+        }
+
+        return config
+
+    } else {
+        console.log(chalk.red("Config file not found"))
+        process.exit(1)
+    }
+}
 
 const main = () => {
 
@@ -37,11 +70,11 @@ const main = () => {
 
             if (fs.existsSync("./config.json")) {
                 let config = JSON.parse(fs.readFileSync("./config.json", "utf-8"))
-                config.private_key = wallet.wallet
+                config.mnemonic = wallet.wallet
                 fs.writeFileSync("./config.json", JSON.stringify(config, null, 4))
             } else {
                 let config = {
-                    private_key: wallet.wallet
+                    mnemonic: wallet.wallet
                 }
                 fs.writeFileSync("./config.json", JSON.stringify(config, null, 4))
             }
@@ -182,15 +215,15 @@ const main = () => {
                 return
             }
 
-            let config = JSON.parse(fs.readFileSync("./config.json", "utf-8"))
+            let config = loadConfig()
 
-            const wallet = await DirectSecp256k1HdWallet.fromMnemonic(config.private_key, {
+            const wallet = await DirectSecp256k1HdWallet.fromMnemonic(config.mnemonic, {
                 prefix: "sei",
             })
             const [firstAccount] = await wallet.getAccounts()
 
-            const client = await SigningCosmWasmClient.connectWithSigner(RPC, wallet, {
-                gasPrice: new GasPrice(Decimal.fromUserInput("200000", 6), "usei")
+            const client = await SigningCosmWasmClient.connectWithSigner(config.rpc, wallet, {
+                gasPrice: GasPrice.fromString("0.01usei")
             })
 
             let lighthouseConfig = await client.queryContractSmart(LIGHTHOUSE_CONTRACT, { get_config: {} })
@@ -287,7 +320,10 @@ const main = () => {
         .action(async (collection) => {
             let spinner = ora("Fetching collection information").start()
 
-            const client = await SigningCosmWasmClient.connect(RPC)
+            let config = loadConfig()
+
+
+            const client = await SigningCosmWasmClient.connect(config.rpc)
             client.queryContractSmart(LIGHTHOUSE_CONTRACT, { get_collection: { collection } }).then((result) => {
                 spinner.succeed("Collection information fetched")
                 //convert group[].unit_price to decimal
@@ -318,19 +354,23 @@ const main = () => {
         .action(async (collection) => {
 
             //load config
-            let config = JSON.parse(fs.readFileSync("./config.json", "utf-8"))
+            let config = loadConfig()
 
-            const wallet = await DirectSecp256k1HdWallet.fromMnemonic(config.private_key, {
+            const wallet = await DirectSecp256k1HdWallet.fromMnemonic(config.mnemonic, {
                 prefix: "sei",
             })
 
             const [firstAccount] = await wallet.getAccounts()
 
-            const client = await SigningCosmWasmClient.connectWithSigner(RPC, wallet, {
-                gasPrice: new GasPrice(Decimal.fromUserInput("200000", 6), "usei")
+            const client = await SigningCosmWasmClient.connectWithSigner(config.rpc, wallet, {
+                gasPrice: GasPrice.fromString("0.01usei")
             })
 
             let spinner = ora("Updating collection").start()
+
+            let token_uri = config.token_uri
+            if (token_uri[token_uri.length - 1] === "/")
+                token_uri = token_uri.slice(0, -1)
 
             const updateMsg = {
                 update_collection: {
@@ -338,7 +378,7 @@ const main = () => {
                     name: config.name,
                     symbol: config.symbol,
                     supply: config.supply,
-                    token_uri: config.token_uri,
+                    token_uri,
                     royalty_percent: config.royalty_percent,
                     royalty_wallet: config.royalty_wallet,
                     creator_wallet: config.creator_wallet,
@@ -372,16 +412,17 @@ const main = () => {
             let codeId = answers.code ? answers.code : null
 
             //load config
-            let config = JSON.parse(fs.readFileSync("./config.json", "utf-8"))
+            let config = loadConfig()
 
-            const wallet = await DirectSecp256k1HdWallet.fromMnemonic(config.private_key, {
+
+            const wallet = await DirectSecp256k1HdWallet.fromMnemonic(config.mnemonic, {
                 prefix: "sei",
             })
 
             const [firstAccount] = await wallet.getAccounts()
 
-            const client = await SigningCosmWasmClient.connectWithSigner(RPC, wallet, {
-                gasPrice: new GasPrice(Decimal.fromUserInput("200000", 6), "usei")
+            var client = await SigningCosmWasmClient.connectWithSigner(config.rpc, wallet, {
+                gasPrice: GasPrice.fromString("0.1usei")
             })
 
             let spinner;
@@ -389,7 +430,9 @@ const main = () => {
             if (codeId === null) {
                 let spinner = ora("Deploying CW721 Contract").start()
 
-                const wasm = fs.readFileSync("./contract.wasm")
+                
+                const contractPath = path.join(__dirname, "./contract.wasm")
+                const wasm = fs.readFileSync(contractPath)
                 const uploadReceipt = await client.upload(firstAccount.address, wasm, "auto")
                 codeId = uploadReceipt.codeId
 
@@ -399,13 +442,17 @@ const main = () => {
                 console.log("Using existing CW721 contract with code ID: " + chalk.green(codeId.toString()))
             }
 
+            let token_uri = config.token_uri
+            if (token_uri[token_uri.length - 1] === "/")
+                token_uri = token_uri.slice(0, -1)
+
             const registerMsg = {
                 register_collection: {
                     cw721_code: codeId,
                     name: config.name,
                     symbol: config.symbol,
                     supply: config.supply,
-                    token_uri: config.token_uri,
+                    token_uri,
                     royalty_percent: config.royalty_percent,
                     royalty_wallet: config.royalty_wallet,
                     creator_wallet: config.creator_wallet,
@@ -421,17 +468,6 @@ const main = () => {
                     })
                 }
             }
-
-            //console.log(registerMsg)
-            //console.log(registerMsg.register_collection.mint_groups)
-
-            /*const fee = {
-                amount: [{
-                  denom: "usei",
-                  amount: "200000usei",
-                }],
-                gas: "20000000",
-            };*/
 
             spinner = ora("Registering Collection").start()
 
@@ -464,7 +500,6 @@ const main = () => {
 }
 
 const createDefaultConfig = () => {
-    //ask for name
 
     inquirer.prompt([
         {
@@ -496,25 +531,28 @@ const createDefaultConfig = () => {
             type: "input",
             name: "creator_wallet",
             message: "Creator wallet address to receive mint funds?"
+        },
+        {
+            type: "input",
+            name: "wallet",
+            message: "What is the mnemonic keyphrase of the address you want to use in lighthouse?"
+        },
+        {
+            type: "input",
+            name: "rpc",
+            message: "What is the RPC you want to use"
         }
     ]).then(async (answers) => {
 
-        let wallet = await inquirer.prompt([
-            {
-                type: "input",
-                name: "wallet",
-                message: "What is the private key of the address you want to use to deploy the contract?"
-            }
-        ])
-
         let config = {
-            private_key: wallet.wallet,
+            mnemonic: answers.wallet,
+            rpc: answers.rpc,
             name: answers.name,
             symbol: answers.symbol,
             description: "",
             supply: parseInt(answers.supply),
             token_uri: "inherit",
-            royalty_percent: parseInt(answers.royalty_percentage),
+            royalty_percent: parseFloat(answers.royalty_percentage),
             royalty_wallet: answers.royalty_wallet,
             creator_wallet: answers.creator_wallet,
             groups: [
@@ -539,18 +577,3 @@ const createDefaultConfig = () => {
 
 main();
 
-export const saveLogs = (logs: any) => {
-    //add logs to log file if exists
-    if (fs.existsSync("./logs.json")) {
-        let logFile: any = []
-        try {
-            logFile = JSON.parse(fs.readFileSync("./logs.json", "utf-8"))
-            logFile.push(logs)
-        } catch (e) {
-            logFile = logs
-        }
-        fs.writeFileSync("./logs.json", JSON.stringify(logFile, null, 4))
-    } else {
-        fs.writeFileSync("./logs.json", JSON.stringify(logs, null, 4))
-    }
-}

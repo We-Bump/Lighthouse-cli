@@ -1,10 +1,11 @@
 {
-    "private_key": "scrub opera base spare music antenna version note fruit security iron first ceiling suggest police jaguar olympic common chaos curtain use artefact bird easily",
+    "mnemonic": "",
+    "rpc": "https://sei-testnet-2-rpc.brocha.in/",
     "name": "WeBump",
     "symbol": "BUMP",
     "description": "",
     "supply": 6,
-    "token_uri": "http://localhost:1984/sLT8ETA47gbLUlWA8KcUYw-gncVqfOqxQTmkQLIO8bo",
+    "token_uri": "https://arweave.net/t1S4RJWPM9MMcSydkL1FdeUns0ldqZAKfsmEYwrzE-E",
     "royalty_percent": 7,
     "royalty_wallet": "sei14v72v7hgzuvgck6v6jsgjacxnt34gj06qnx53d",
     "creator_wallet": "sei14v72v7hgzuvgck6v6jsgjacxnt34gj06qnx53d",
