@@ -50,6 +50,20 @@ Load a wallet with mnemonic keyphrase.
 ```sh
 $ lighthouse load-wallet
 ```
+### `load-rpc`
+
+Load rpc to use in cli.
+
+```sh
+$ lighthouse load-rpc
+```
+### `load-network`
+
+Select network to use in cli.
+
+```sh
+$ lighthouse load-network
+```
 ### `deploy`
 
 Deploy a new NFT collection based on (`config.json`) . 

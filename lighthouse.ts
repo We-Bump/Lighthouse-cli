@@ -36,14 +36,14 @@ const loadConfig = () => {
         let config = JSON.parse(fs.readFileSync("./config.json", "utf-8"))
 
         if (!config.mnemonic || !config.rpc) {
-            console.log(chalk.red("Config file is missing required fields (mnemonic, rpc)"))
+            console.log(chalk.red("\nConfig file is missing required fields (mnemonic, rpc, network)"))
             process.exit(1)
         }
 
         return config
 
     } else {
-        console.log(chalk.red("Config file not found"))
+        console.log(chalk.red("\nConfig file not found"))
         process.exit(1)
     }
 }
@@ -53,7 +53,7 @@ const main = () => {
     program
         .name("lighthouse")
         .description("Lighthouse is a tool for creating NFT collections on the SEI blockchain.")
-        .version("0.0.1")
+        .version("0.1.6")
 
     program
         .command("load-wallet")
@@ -74,6 +74,59 @@ const main = () => {
             } else {
                 let config = {
                     mnemonic: wallet.wallet
+                }
+                fs.writeFileSync("./config.json", JSON.stringify(config, null, 4))
+            }
+
+            console.log(chalk.green("Saved to config.json"))
+        })
+
+    program
+        .command("load-rpc")
+        .description("Load a wallet from a mnemonic")
+        .action(async () => {
+            let rpc = await inquirer.prompt([
+                {
+                    type: "input",
+                    name: "rpc",
+                    message: "What is the RPC you want to use"
+                }
+            ])
+
+            if (fs.existsSync("./config.json")) {
+                let config = JSON.parse(fs.readFileSync("./config.json", "utf-8"))
+                config.rpc = rpc.rpc
+                fs.writeFileSync("./config.json", JSON.stringify(config, null, 4))
+            } else {
+                let config = {
+                    rpc: rpc.rpc
+                }
+                fs.writeFileSync("./config.json", JSON.stringify(config, null, 4))
+            }
+
+            console.log(chalk.green("Saved to config.json"))
+        })
+
+    program
+        .command("load-network")
+        .description("Select available network to use")
+        .action(async () => {
+            let network = await inquirer.prompt([
+                {
+                    type: "list",
+                    name: "network",
+                    message: "What is the network you want to use?",
+                    choices: ['atlantic-2']
+                }
+            ])
+
+            if (fs.existsSync("./config.json")) {
+                let config = JSON.parse(fs.readFileSync("./config.json", "utf-8"))
+                config.network = network.network
+                fs.writeFileSync("./config.json", JSON.stringify(config, null, 4))
+            } else {
+                let config = {
+                    network: network.network
                 }
                 fs.writeFileSync("./config.json", JSON.stringify(config, null, 4))
             }
@@ -325,10 +378,6 @@ const main = () => {
             const client = await SigningCosmWasmClient.connect(config.rpc)
             client.queryContractSmart(LIGHTHOUSE_CONTRACT, { get_collection: { collection } }).then((result) => {
                 spinner.succeed("Collection information fetched")
-                //convert group[].unit_price to decimal
-                //convert group[].merkle_root to hex
-                //convert group[].start_time to date
-                //convert group[].end_time to date 
 
                 let groups = result.mint_groups.map((group: any) => {
                     return {
@@ -429,7 +478,7 @@ const main = () => {
             if (codeId === null) {
                 let spinner = ora("Deploying CW721 Contract").start()
 
-                
+
                 const contractPath = path.join(__dirname, "./contract.wasm")
                 const wasm = fs.readFileSync(contractPath)
                 const uploadReceipt = await client.upload(firstAccount.address, wasm, "auto")
@@ -493,6 +542,57 @@ const main = () => {
             console.log("Collection address: " + chalk.green(collectionAddress))
         })
 
+    program
+        .command("list", { hidden: true })
+        .option("--start-after <start_after>", "Start listing after this address")
+        .option("--limit <limit>", "Limit the number of results")
+        .option("--result-type <result_type>", "Result type (full or minimal)")
+        .action(async (answers) => {
+
+            let spinner = ora("Fetching collections information").start()
+
+            let config = loadConfig()
+
+            let start_after = answers.startAfter || null
+            let limit = answers.limit || null
+            let result_type = answers.resultType || null
+
+
+            const client = await SigningCosmWasmClient.connect(config.rpc)
+            client.queryContractSmart(LIGHTHOUSE_CONTRACT, {
+                get_collections: {
+                    start_after,
+                    limit: limit ? parseInt(limit) : null,
+                    result_type
+                }
+            }).then((result) => {
+                spinner.succeed("Collections fetched")
+
+                if (result_type === "full") {
+
+                    for (let i = 0; i < result.collections.length; i++){
+                        let groups = result.collections[i].mint_groups.map((group: any) => {
+                            return {
+                                name: group.name,
+                                merkle_root: group.merkle_root ? Buffer.from(group.merkle_root).toString('hex') : null,
+                                max_tokens: group.max_tokens,
+                                unit_price: (new BigNumber(group.unit_price).dividedBy(new BigNumber(1e9))).toString(),
+                                start_time: group.start_time ? new Date(group.start_time * 1000).toISOString() : null,
+                                end_time: group.end_time ? new Date(group.end_time * 1000).toISOString() : null
+                            }
+                        })
+
+                        result.collections[i].mint_groups = groups
+                    }
+
+                    console.log(JSON.stringify(result.collections, null, 4))
+                }else{
+                    console.log(JSON.stringify(result.collections, null, 4))
+                }
+            })
+
+        });
+
 
 
     program.parse()
@@ -540,12 +640,19 @@ const createDefaultConfig = () => {
             type: "input",
             name: "rpc",
             message: "What is the RPC you want to use"
+        },
+        {
+            type: "list",
+            name: "network",
+            message: "What is the network you want to use?",
+            choices: ['atlantic-2']
         }
     ]).then(async (answers) => {
 
         let config = {
             mnemonic: answers.wallet,
             rpc: answers.rpc,
+            network: answers.network,
             name: answers.name,
             symbol: answers.symbol,
             description: "",
@@ -559,7 +666,6 @@ const createDefaultConfig = () => {
                     name: "public",
                     merkle_root: null,
                     max_tokens: 0,
-                    cw20_address: null,
                     unit_price: 1,
                     start_time: new Date().toISOString().split(".")[0] + "Z",
                     end_time: null

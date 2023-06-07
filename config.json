@@ -1,6 +1,7 @@
 {
     "mnemonic": "",
     "rpc": "https://sei-testnet-2-rpc.brocha.in/",
+    "network": "atlantic-2",
     "name": "WeBump",
     "symbol": "BUMP",
     "description": "",
