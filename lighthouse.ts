@@ -430,6 +430,7 @@ const main = () => {
                     royalty_percent: config.royalty_percent,
                     royalty_wallet: config.royalty_wallet,
                     creator_wallet: config.creator_wallet,
+                    iterated_uri:config.iterated_uri,
                     mint_groups: config.groups.map((group: any) => {
                         return {
                             name: group.name,
@@ -504,6 +505,7 @@ const main = () => {
                     royalty_percent: config.royalty_percent,
                     royalty_wallet: config.royalty_wallet,
                     creator_wallet: config.creator_wallet,
+                    iterated_uri:config.iterated_uri,
                     mint_groups: config.groups.map((group: any) => {
                         return {
                             name: group.name,
@@ -661,6 +663,7 @@ const createDefaultConfig = () => {
             royalty_percent: parseFloat(answers.royalty_percentage),
             royalty_wallet: answers.royalty_wallet,
             creator_wallet: answers.creator_wallet,
+            iterated_uri: true,
             groups: [
                 {
                     name: "public",

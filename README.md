@@ -133,6 +133,7 @@ Lighthouse relies on a `config.json` file for configuration of NFT collections. 
 {
   "mnemonic": "your mnemonic keyphrase",
   "rpc": "rpc url",
+  "network": "atlantic-2",
   "name": "collection-name",
   "symbol": "collection-symbol",
   "description": "",
@@ -141,6 +142,7 @@ Lighthouse relies on a `config.json` file for configuration of NFT collections. 
   "royalty_percent": 5,
   "royalty_wallet": "royalty-wallet-address",
   "creator_wallet": "creator-wallet-address",
+  "iterated_uri":true,
   "groups": [
     {
       "name": "whitelist",
@@ -165,6 +167,8 @@ Lighthouse relies on a `config.json` file for configuration of NFT collections. 
 
 `rpc` - rpc url of the blockchain
 
+`network` - network name
+
 `name` - name of the collection
 
 `symbol` - symbol of the collection
@@ -180,6 +184,8 @@ Lighthouse relies on a `config.json` file for configuration of NFT collections. 
 `royalty_wallet` - wallet to receive royalty
 
 `creator_wallet` - wallet to receive mint funds
+
+`iterated_uri` - should token_uri generate iterated urls or not (eg: {token_uri}/1, {token_uri}/2, ...)
 
 `groups` - array of mint groups
 
