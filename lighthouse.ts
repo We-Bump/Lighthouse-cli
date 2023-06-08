@@ -384,7 +384,7 @@ const main = () => {
                         name: group.name,
                         merkle_root: group.merkle_root ? Buffer.from(group.merkle_root).toString('hex') : null,
                         max_tokens: group.max_tokens,
-                        unit_price: (new BigNumber(group.unit_price).dividedBy(new BigNumber(1e9))).toString(),
+                        unit_price: (new BigNumber(group.unit_price).dividedBy(new BigNumber(1e6))).toString(),
                         start_time: group.start_time ? new Date(group.start_time * 1000).toISOString() : null,
                         end_time: group.end_time ? new Date(group.end_time * 1000).toISOString() : null
                     }
@@ -436,7 +436,7 @@ const main = () => {
                             name: group.name,
                             merkle_root: group.merkle_root ? Array.from(Buffer.from(group.merkle_root, 'hex')) : null,
                             max_tokens: group.max_tokens ? group.max_tokens : 0,
-                            unit_price: (new BigNumber(group.unit_price.toString()).times(new BigNumber(1e9))).toString(),
+                            unit_price: (new BigNumber(group.unit_price.toString()).times(new BigNumber(1e6))).toString(),
                             start_time: group.start_time ? new Date(group.start_time).getTime() / 1000 : 0,
                             end_time: group.end_time ? new Date(group.end_time).getTime() / 1000 : 0
                         }
@@ -511,7 +511,7 @@ const main = () => {
                             name: group.name,
                             merkle_root: group.merkle_root ? Array.from(Buffer.from(group.merkle_root, 'hex')) : null,
                             max_tokens: group.max_tokens ? group.max_tokens : 0,
-                            unit_price: (new BigNumber(group.unit_price.toString()).times(new BigNumber(1e9))).toString(),
+                            unit_price: (new BigNumber(group.unit_price.toString()).times(new BigNumber(1e6))).toString(),
                             start_time: group.start_time ? new Date(group.start_time).getTime() / 1000 : 0,
                             end_time: group.end_time ? new Date(group.end_time).getTime() / 1000 : 0
                         }
@@ -578,7 +578,7 @@ const main = () => {
                                 name: group.name,
                                 merkle_root: group.merkle_root ? Buffer.from(group.merkle_root).toString('hex') : null,
                                 max_tokens: group.max_tokens,
-                                unit_price: (new BigNumber(group.unit_price).dividedBy(new BigNumber(1e9))).toString(),
+                                unit_price: (new BigNumber(group.unit_price).dividedBy(new BigNumber(1e6))).toString(),
                                 start_time: group.start_time ? new Date(group.start_time * 1000).toISOString() : null,
                                 end_time: group.end_time ? new Date(group.end_time * 1000).toISOString() : null
                             }
