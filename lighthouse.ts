@@ -35,7 +35,7 @@ const loadConfig = () => {
     if (fs.existsSync("./config.json")) {
         let config = JSON.parse(fs.readFileSync("./config.json", "utf-8"))
 
-        if (!config.mnemonic || !config.rpc) {
+        if (!config.mnemonic || !config.rpc || !config.network) {
             console.log(chalk.red("\nConfig file is missing required fields (mnemonic, rpc, network)"))
             process.exit(1)
         }
@@ -543,6 +543,64 @@ const main = () => {
             console.log("Transaction hash: " + chalk.green(registerReceipt.transactionHash))
             console.log("Collection address: " + chalk.green(collectionAddress))
         })
+
+    program
+        .command("minters")
+        .description("Get the list of minters for a collection")
+        .arguments("<collection>")
+        .option("--output <output_file>", "Save minters to a file")
+        .option("--with-count", "Add count of mints for each minter")
+        .action(async (collection, options) => {
+
+            let spinner = ora("Fetching minters information").start()
+
+            let config = loadConfig()
+
+            const client = await SigningCosmWasmClient.connect(config.rpc)
+            client.queryContractSmart(LIGHTHOUSE_CONTRACT, {
+                get_minters: {
+                    collection
+                }
+            }).then((result) => {
+
+                spinner.succeed("Minters fetched")
+
+                if (options.withCount) {
+                    //every duplicate address is an additional mint
+                    result.minters = result.minters.map((minter: any) => {
+                        return {
+                            address: minter,
+                            count: result.minters.filter((m: any) => m === minter).length
+                        }
+                    })
+
+                    //remove duplicates
+                    result.minters = result.minters.filter((minter: any, index: number, self: any) =>
+                        index === self.findIndex((m: any) => (
+                            m.address === minter.address
+                        ))
+                    )
+                }else{
+                    result.minters = [...new Set(result.minters)];
+                }
+
+                if (options.output) {
+                    if (path.extname(options.output) === "")
+                        options.output += ".json"
+
+                    fs.writeFileSync(options.output, JSON.stringify(result.minters, null, 4))
+                    console.log("Minters saved to " + chalk.green(options.output))
+                } else {
+                    console.log(JSON.stringify(result.minters, null, 4))
+                }
+
+            }).catch((err) => {
+                spinner.fail("Failed to fetch minters")
+                console.log(err)
+            })
+
+        })
+
 
     program
         .command("list", { hidden: true })

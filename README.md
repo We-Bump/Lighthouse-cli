@@ -105,6 +105,17 @@ Generate merkle proof for a walet.
 ```
 $ lighthouse generate-merkle-root <path-to-wallets-json-file> <publickey>
 ```
+### `minters`
+
+List minters of a deployed NFT collection.
+```
+$ lighthouse minters <collection-address>
+```
+##### options
+`--output <output-file>` - path to output file
+
+`--with-count` - include count of mints per wallet
+
 ### `validate`
 
 Validate metadata and image files to upload to arweave. `(metadata files must be in ./assets folder)`
