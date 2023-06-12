@@ -12,7 +12,7 @@ import { processCliUpload } from "./arweave"
 import { keccak_256 } from '@noble/hashes/sha3'
 import path from "path"
 
-const LIGHTHOUSE_CONTRACT = "sei13xt7vyffty38yads7nfe8ydysv3z82ege0ju8sf6sdk5c6aw99ds9xvjtx"
+const LIGHTHOUSE_CONTRACT = "sei1tae8sxwht8zh5pfd2ac2l6ex97rk4jkd23gw5sczgjxgey9lduusptyaqn"
 
 export const saveLogs = (logs: any) => {
     //add logs to log file if exists
@@ -429,7 +429,6 @@ const main = () => {
                     token_uri,
                     royalty_percent: config.royalty_percent,
                     royalty_wallet: config.royalty_wallet,
-                    creator_wallet: config.creator_wallet,
                     iterated_uri:config.iterated_uri,
                     mint_groups: config.groups.map((group: any) => {
                         return {
@@ -437,6 +436,7 @@ const main = () => {
                             merkle_root: group.merkle_root ? Array.from(Buffer.from(group.merkle_root, 'hex')) : null,
                             max_tokens: group.max_tokens ? group.max_tokens : 0,
                             unit_price: (new BigNumber(group.unit_price.toString()).times(new BigNumber(1e6))).toString(),
+                            creators: group.creators ? group.creators : [],
                             start_time: group.start_time ? new Date(group.start_time).getTime() / 1000 : 0,
                             end_time: group.end_time ? new Date(group.end_time).getTime() / 1000 : 0
                         }
@@ -504,7 +504,6 @@ const main = () => {
                     token_uri,
                     royalty_percent: config.royalty_percent,
                     royalty_wallet: config.royalty_wallet,
-                    creator_wallet: config.creator_wallet,
                     iterated_uri:config.iterated_uri,
                     mint_groups: config.groups.map((group: any) => {
                         return {
@@ -512,6 +511,7 @@ const main = () => {
                             merkle_root: group.merkle_root ? Array.from(Buffer.from(group.merkle_root, 'hex')) : null,
                             max_tokens: group.max_tokens ? group.max_tokens : 0,
                             unit_price: (new BigNumber(group.unit_price.toString()).times(new BigNumber(1e6))).toString(),
+                            creators: group.creators ? group.creators : [],
                             start_time: group.start_time ? new Date(group.start_time).getTime() / 1000 : 0,
                             end_time: group.end_time ? new Date(group.end_time).getTime() / 1000 : 0
                         }
@@ -545,59 +545,50 @@ const main = () => {
         })
 
     program
-        .command("minters")
-        .description("Get the list of minters for a collection")
-        .arguments("<collection>")
-        .option("--output <output_file>", "Save minters to a file")
-        .option("--with-count", "Add count of mints for each minter")
-        .action(async (collection, options) => {
+        .command("ownerof")
+        .description("Get the owner of a token")
+        .arguments("<collection> <token_ids>")
+        .action(async (collection, token_ids) => {
 
-            let spinner = ora("Fetching minters information").start()
+            let spinner = ora("Fetching owner information").start()
 
             let config = loadConfig()
 
             const client = await SigningCosmWasmClient.connect(config.rpc)
-            client.queryContractSmart(LIGHTHOUSE_CONTRACT, {
-                get_minters: {
-                    collection
-                }
-            }).then((result) => {
 
-                spinner.succeed("Minters fetched")
+            let owners = []
 
-                if (options.withCount) {
-                    //every duplicate address is an additional mint
-                    result.minters = result.minters.map((minter: any) => {
-                        return {
-                            address: minter,
-                            count: result.minters.filter((m: any) => m === minter).length
-                        }
-                    })
+            for (let token_id of token_ids.split(",")) {
 
-                    //remove duplicates
-                    result.minters = result.minters.filter((minter: any, index: number, self: any) =>
-                        index === self.findIndex((m: any) => (
-                            m.address === minter.address
-                        ))
-                    )
-                }else{
-                    result.minters = [...new Set(result.minters)];
-                }
+                let result = await  client.queryContractSmart(collection, {
+                    owner_of: {
+                        token_id
+                    }
+                })
 
-                if (options.output) {
-                    if (path.extname(options.output) === "")
-                        options.output += ".json"
+                owners.push(result.owner)
+            }
 
-                    fs.writeFileSync(options.output, JSON.stringify(result.minters, null, 4))
-                    console.log("Minters saved to " + chalk.green(options.output))
-                } else {
-                    console.log(JSON.stringify(result.minters, null, 4))
-                }
+            spinner.succeed("Owners fetched")
+            console.log(owners.join("\n"))
 
-            }).catch((err) => {
-                spinner.fail("Failed to fetch minters")
-                console.log(err)
-            })
+            //ask to save to file
+            const answers = await inquirer.prompt([{
+                type: 'confirm',
+                name: 'save',
+                message: 'Save owners to a file?',
+                default: false
+            }])
+
+            if (answers.save) {
+                const answers = await inquirer.prompt([{
+                    type: 'input',
+                    name: 'file',
+                    message: 'Enter file name',
+                    default: "owners.txt"
+                }])
+                fs.writeFileSync(answers.file, owners.join("\n"))
+            }
 
         })
 
@@ -717,10 +708,9 @@ const createDefaultConfig = () => {
             symbol: answers.symbol,
             description: "",
             supply: parseInt(answers.supply),
-            token_uri: "inherit",
+            token_uri: "",
             royalty_percent: parseFloat(answers.royalty_percentage),
             royalty_wallet: answers.royalty_wallet,
-            creator_wallet: answers.creator_wallet,
             iterated_uri: true,
             groups: [
                 {
@@ -728,6 +718,12 @@ const createDefaultConfig = () => {
                     merkle_root: null,
                     max_tokens: 0,
                     unit_price: 1,
+                    creators: [
+                        {
+                            address: answers.creator_wallet,
+                            share: 100
+                        }
+                    ],
                     start_time: new Date().toISOString().split(".")[0] + "Z",
                     end_time: null
                 }

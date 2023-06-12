@@ -9,7 +9,6 @@
     "token_uri": "https://arweave.net/t1S4RJWPM9MMcSydkL1FdeUns0ldqZAKfsmEYwrzE-E",
     "royalty_percent": 7,
     "royalty_wallet": "sei14v72v7hgzuvgck6v6jsgjacxnt34gj06qnx53d",
-    "creator_wallet": "sei14v72v7hgzuvgck6v6jsgjacxnt34gj06qnx53d",
     "iterated_uri":true,
     "groups": [
         {
@@ -17,6 +16,12 @@
             "merkle_root": "dcd038eeec4c67d44de097df2d773179fa811948a2e391f9784f6823a29c4a9f",
             "max_tokens": 0,
             "unit_price": 0.5,
+            "creators": [
+                {
+                    "address": "sei14v72v7hgzuvgck6v6jsgjacxnt34gj06qnx53d",
+                    "share": 100
+                }
+            ],
             "start_time": "2023-05-30T08:05:00Z",
             "end_time": null
         },
@@ -25,6 +30,12 @@
             "merkle_root": null,
             "max_tokens": 0,
             "unit_price": 1,
+            "creators": [
+                {
+                    "address": "sei14v72v7hgzuvgck6v6jsgjacxnt34gj06qnx53d",
+                    "share": 100
+                }
+            ],
             "start_time": "2023-05-30T08:08:00Z",
             "end_time": null
         }

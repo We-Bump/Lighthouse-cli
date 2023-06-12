@@ -105,16 +105,12 @@ Generate merkle proof for a walet.
 ```
 $ lighthouse generate-merkle-root <path-to-wallets-json-file> <publickey>
 ```
-### `minters`
+### `ownerof`
 
-List minters of a deployed NFT collection.
+Get owner(s) of specific token ids.
 ```
-$ lighthouse minters <collection-address>
+$ lighthouse ownerof <collection-address> <token-ids>
 ```
-##### options
-`--output <output-file>` - path to output file
-
-`--with-count` - include count of mints per wallet
 
 ### `validate`
 
@@ -152,7 +148,6 @@ Lighthouse relies on a `config.json` file for configuration of NFT collections. 
   "token_uri": "inherit",
   "royalty_percent": 5,
   "royalty_wallet": "royalty-wallet-address",
-  "creator_wallet": "creator-wallet-address",
   "iterated_uri":true,
   "groups": [
     {
@@ -160,6 +155,12 @@ Lighthouse relies on a `config.json` file for configuration of NFT collections. 
       "merkle_root": "dcd038eeec4c67d44de097df2d773179fa811948a2e391f9784f6823a29c4a9f",
       "max_tokens": 3,
       "unit_price": 0.5,
+      "creators": [
+          {
+              "address": "creator-wallet-address",
+              "share": 100
+          }
+      ],
       "start_time": "2023-05-30T08:00:00Z",
       "end_time": "2023-05-30T09:00:00Z"
     },
@@ -168,6 +169,12 @@ Lighthouse relies on a `config.json` file for configuration of NFT collections. 
       "merkle_root": null,
       "max_tokens": 10,
       "unit_price": 1,
+      "creators": [
+          {
+              "address": "creator-wallet-address",
+              "share": 100
+          }
+      ],
       "start_time": "2023-05-30T09:00:00Z",
       "end_time": null
     }
@@ -194,8 +201,6 @@ Lighthouse relies on a `config.json` file for configuration of NFT collections. 
 
 `royalty_wallet` - wallet to receive royalty
 
-`creator_wallet` - wallet to receive mint funds
-
 `iterated_uri` - should token_uri generate iterated urls or not (eg: {token_uri}/1, {token_uri}/2, ...)
 
 `groups` - array of mint groups
@@ -209,6 +214,8 @@ Lighthouse relies on a `config.json` file for configuration of NFT collections. 
 `max_tokens` - max mint per wallet
 
 `unit_price` - mint price
+
+`creators` - array of creators and their share in mint funds (total share must be 100)
 
 `start_time` - start time of minting to start for the group (utc)
 
