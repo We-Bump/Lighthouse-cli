@@ -53,7 +53,7 @@ const main = () => {
     program
         .name("lighthouse")
         .description("Lighthouse is a tool for creating NFT collections on the SEI blockchain.")
-        .version("0.2.3")
+        .version("0.2.4")
 
     program
         .command("load-wallet")
@@ -276,7 +276,7 @@ const main = () => {
             const [firstAccount] = await wallet.getAccounts()
 
             const client = await SigningCosmWasmClient.connectWithSigner(config.rpc, wallet, {
-                gasPrice: GasPrice.fromString(answers.gasPrice ? answers.gasPrice : "0.01usei")
+                gasPrice: GasPrice.fromString(answers.gasPrice ? answers.gasPrice + "usei"  : "0.01usei")
             })
 
             let lighthouseConfig = await client.queryContractSmart(LIGHTHOUSE_CONTRACT, { get_config: {} })
@@ -413,7 +413,7 @@ const main = () => {
             const [firstAccount] = await wallet.getAccounts()
 
             const client = await SigningCosmWasmClient.connectWithSigner(config.rpc, wallet, {
-                gasPrice: GasPrice.fromString(options.gasPrice ? options.gasPrice : "0.01usei")
+                gasPrice: GasPrice.fromString(options.gasPrice ? options.gasPrice + "usei" : "0.01usei")
             })
 
             let spinner = ora("Updating collection").start()
@@ -474,7 +474,7 @@ const main = () => {
             const [firstAccount] = await wallet.getAccounts()
 
             var client = await SigningCosmWasmClient.connectWithSigner(config.rpc, wallet, {
-                gasPrice: GasPrice.fromString(answers.gasPrice ? answers.gasPrice : "0.01usei")
+                gasPrice: GasPrice.fromString(answers.gasPrice ? answers.gasPrice + "usei"  : "0.01usei")
             })
 
             let spinner;
