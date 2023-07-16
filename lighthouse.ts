@@ -53,7 +53,7 @@ const main = () => {
     program
         .name("lighthouse")
         .description("Lighthouse is a tool for creating NFT collections on the SEI blockchain.")
-        .version("0.1.6")
+        .version("0.2.3")
 
     program
         .command("load-wallet")
@@ -258,6 +258,7 @@ const main = () => {
         .description("Mint new NFTs from an existing NFT collection")
         .argument("<collection>")
         .argument("<group_name>", "Mint from a specific group")
+        .option("--gas-price <gas_price>", "Gas price to use for transaction")
         .action(async (collection, groupName, answers) => {
 
             if (groupName) {
@@ -275,7 +276,7 @@ const main = () => {
             const [firstAccount] = await wallet.getAccounts()
 
             const client = await SigningCosmWasmClient.connectWithSigner(config.rpc, wallet, {
-                gasPrice: GasPrice.fromString("0.01usei")
+                gasPrice: GasPrice.fromString(answers.gasPrice ? answers.gasPrice : "0.01usei")
             })
 
             let lighthouseConfig = await client.queryContractSmart(LIGHTHOUSE_CONTRACT, { get_config: {} })
@@ -399,7 +400,8 @@ const main = () => {
         .command("update")
         .description("Update configuration of an existing NFT collection")
         .argument("<collection>")
-        .action(async (collection) => {
+        .option("--gas-price <gas_price>", "Gas price to use for transaction")
+        .action(async (collection, options) => {
 
             //load config
             let config = loadConfig()
@@ -411,7 +413,7 @@ const main = () => {
             const [firstAccount] = await wallet.getAccounts()
 
             const client = await SigningCosmWasmClient.connectWithSigner(config.rpc, wallet, {
-                gasPrice: GasPrice.fromString("0.01usei")
+                gasPrice: GasPrice.fromString(options.gasPrice ? options.gasPrice : "0.01usei")
             })
 
             let spinner = ora("Updating collection").start()
@@ -429,7 +431,7 @@ const main = () => {
                     token_uri,
                     royalty_percent: config.royalty_percent,
                     royalty_wallet: config.royalty_wallet,
-                    iterated_uri:config.iterated_uri,
+                    iterated_uri: config.iterated_uri,
                     mint_groups: config.groups.map((group: any) => {
                         return {
                             name: group.name,
@@ -455,6 +457,7 @@ const main = () => {
         .command("deploy")
         .description("Deploy a new NFT collection to the SEI blockchain")
         .option("--code <code_id>", "Register already deployed CW721 contract (optional)")
+        .option("--gas-price <gas_price>", "Gas price to use for transaction")
         .action(async (answers) => {
 
 
@@ -471,7 +474,7 @@ const main = () => {
             const [firstAccount] = await wallet.getAccounts()
 
             var client = await SigningCosmWasmClient.connectWithSigner(config.rpc, wallet, {
-                gasPrice: GasPrice.fromString("0.1usei")
+                gasPrice: GasPrice.fromString(answers.gasPrice ? answers.gasPrice : "0.01usei")
             })
 
             let spinner;
@@ -504,7 +507,7 @@ const main = () => {
                     token_uri,
                     royalty_percent: config.royalty_percent,
                     royalty_wallet: config.royalty_wallet,
-                    iterated_uri:config.iterated_uri,
+                    iterated_uri: config.iterated_uri,
                     mint_groups: config.groups.map((group: any) => {
                         return {
                             name: group.name,
@@ -560,7 +563,7 @@ const main = () => {
 
             for (let token_id of token_ids.split(",")) {
 
-                let result = await  client.queryContractSmart(collection, {
+                let result = await client.queryContractSmart(collection, {
                     owner_of: {
                         token_id
                     }
@@ -589,6 +592,29 @@ const main = () => {
                 }])
                 fs.writeFileSync(answers.file, owners.join("\n"))
             }
+
+        })
+
+    program
+        .command("view-nft")
+        .description("View NFT information")
+        .arguments("<collection> <token_id>")
+        .action(async (collection, token_id) => {
+
+            let spinner = ora("Fetching NFT information").start()
+
+            let config = loadConfig()
+
+            const client = await SigningCosmWasmClient.connect(config.rpc)
+
+            let result = await client.queryContractSmart(collection, {
+                nft_info: {
+                    token_id
+                }
+            })
+
+            spinner.succeed("NFT fetched")
+            console.log(result)
 
         })
 
@@ -621,7 +647,7 @@ const main = () => {
 
                 if (result_type === "full") {
 
-                    for (let i = 0; i < result.collections.length; i++){
+                    for (let i = 0; i < result.collections.length; i++) {
                         let groups = result.collections[i].mint_groups.map((group: any) => {
                             return {
                                 name: group.name,
@@ -637,7 +663,7 @@ const main = () => {
                     }
 
                     console.log(JSON.stringify(result.collections, null, 4))
-                }else{
+                } else {
                     console.log(JSON.stringify(result.collections, null, 4))
                 }
             })
