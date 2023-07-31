@@ -161,6 +161,7 @@ Lighthouse relies on a `config.json` file for configuration of NFT collections. 
   "royalty_percent": 5,
   "royalty_wallet": "royalty-wallet-address",
   "iterated_uri":true,
+  "start_order": 1,
   "groups": [
     {
       "name": "whitelist",
