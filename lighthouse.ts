@@ -12,7 +12,7 @@ import { processCliUpload } from "./arweave"
 import { keccak_256 } from '@noble/hashes/sha3'
 import path from "path"
 
-const LIGHTHOUSE_CONTRACT = "sei1tae8sxwht8zh5pfd2ac2l6ex97rk4jkd23gw5sczgjxgey9lduusptyaqn"
+const LIGHTHOUSE_CONTRACT = "sei15j7am0d65y55ufd0xr9nnd6pyhg0q65qx2c98h3nz5repln9gxks8urz69"
 
 export const saveLogs = (logs: any) => {
     //add logs to log file if exists
@@ -53,7 +53,7 @@ const main = () => {
     program
         .name("lighthouse")
         .description("Lighthouse is a tool for creating NFT collections on the SEI blockchain.")
-        .version("0.2.4")
+        .version("0.2.5")
 
     program
         .command("load-wallet")
@@ -258,7 +258,7 @@ const main = () => {
         .description("Mint new NFTs from an existing NFT collection")
         .argument("<collection>")
         .argument("<group_name>", "Mint from a specific group")
-        .option("--gas-price <gas_price>", "Gas price to use for transaction")
+        .option("--gas-price <gas_price>", "Gas price to use for transaction (default: 0.1)")
         .action(async (collection, groupName, answers) => {
 
             if (groupName) {
@@ -276,7 +276,7 @@ const main = () => {
             const [firstAccount] = await wallet.getAccounts()
 
             const client = await SigningCosmWasmClient.connectWithSigner(config.rpc, wallet, {
-                gasPrice: GasPrice.fromString(answers.gasPrice ? answers.gasPrice + "usei"  : "0.01usei")
+                gasPrice: GasPrice.fromString(answers.gasPrice ? answers.gasPrice + "usei"  : "0.1usei")
             })
 
             let lighthouseConfig = await client.queryContractSmart(LIGHTHOUSE_CONTRACT, { get_config: {} })
@@ -387,7 +387,8 @@ const main = () => {
                         max_tokens: group.max_tokens,
                         unit_price: (new BigNumber(group.unit_price).dividedBy(new BigNumber(1e6))).toString(),
                         start_time: group.start_time ? new Date(group.start_time * 1000).toISOString() : null,
-                        end_time: group.end_time ? new Date(group.end_time * 1000).toISOString() : null
+                        end_time: group.end_time ? new Date(group.end_time * 1000).toISOString() : null,
+                        creators: group.creators ? group.creators : [],
                     }
                 })
 
@@ -400,7 +401,7 @@ const main = () => {
         .command("update")
         .description("Update configuration of an existing NFT collection")
         .argument("<collection>")
-        .option("--gas-price <gas_price>", "Gas price to use for transaction")
+        .option("--gas-price <gas_price>", "Gas price to use for transaction  (default: 0.1)")
         .action(async (collection, options) => {
 
             //load config
@@ -413,7 +414,7 @@ const main = () => {
             const [firstAccount] = await wallet.getAccounts()
 
             const client = await SigningCosmWasmClient.connectWithSigner(config.rpc, wallet, {
-                gasPrice: GasPrice.fromString(options.gasPrice ? options.gasPrice + "usei" : "0.01usei")
+                gasPrice: GasPrice.fromString(options.gasPrice ? options.gasPrice + "usei" : "0.1usei")
             })
 
             let spinner = ora("Updating collection").start()
@@ -432,6 +433,7 @@ const main = () => {
                     royalty_percent: config.royalty_percent,
                     royalty_wallet: config.royalty_wallet,
                     iterated_uri: config.iterated_uri,
+                    start_order: config.start_order,
                     mint_groups: config.groups.map((group: any) => {
                         return {
                             name: group.name,
@@ -457,7 +459,7 @@ const main = () => {
         .command("deploy")
         .description("Deploy a new NFT collection to the SEI blockchain")
         .option("--code <code_id>", "Register already deployed CW721 contract (optional)")
-        .option("--gas-price <gas_price>", "Gas price to use for transaction")
+        .option("--gas-price <gas_price>", "Gas price to use for transaction  (default: 0.1)")
         .action(async (answers) => {
 
 
@@ -474,7 +476,7 @@ const main = () => {
             const [firstAccount] = await wallet.getAccounts()
 
             var client = await SigningCosmWasmClient.connectWithSigner(config.rpc, wallet, {
-                gasPrice: GasPrice.fromString(answers.gasPrice ? answers.gasPrice + "usei"  : "0.01usei")
+                gasPrice: GasPrice.fromString(answers.gasPrice ? answers.gasPrice + "usei"  : "0.1usei")
             })
 
             let spinner;
@@ -508,6 +510,7 @@ const main = () => {
                     royalty_percent: config.royalty_percent,
                     royalty_wallet: config.royalty_wallet,
                     iterated_uri: config.iterated_uri,
+                    start_order: config.start_order,
                     mint_groups: config.groups.map((group: any) => {
                         return {
                             name: group.name,
@@ -594,6 +597,107 @@ const main = () => {
             }
 
         })
+
+    program
+        .command("minterof")
+        .description("Get the minter of token(s)")
+        .argument("<collection>", "Collection address")
+        .argument("<token_ids>", "Token ID(s) separated by commas")
+        .action(async (collection, token_ids) => {
+
+            let spinner = ora("Fetching Minter information").start()
+
+            let config = loadConfig()
+
+            const client = await SigningCosmWasmClient.connect(config.rpc)
+
+            let minters = []
+
+            for (let token_id of token_ids.split(",")) {
+
+                let result = await client.queryContractSmart(LIGHTHOUSE_CONTRACT, {
+                    get_minter_of: {
+                        collection,
+                        token_id
+                    }
+                })
+
+                minters.push({token_id, minter: result})
+            }
+
+            spinner.succeed("Minters fetched")
+            console.log(minters.map((minter: any) => minter.token_id + " " + minter.minter).join("\n"))
+
+            //ask to save to file
+            const answers = await inquirer.prompt([{
+                type: 'confirm',
+                name: 'save',
+                message: 'Save minters to a file?',
+                default: false
+            }])
+
+            if (answers.save) {
+                const answers = await inquirer.prompt([{
+                    type: 'input',
+                    name: 'file',
+                    message: 'Enter file name',
+                    default: "minters.txt"
+                }])
+                fs.writeFileSync(answers.file, minters.map((minter: any) => minter.token_id + " " + minter.minter).join("\n"))
+            }
+
+        })
+
+    program
+        .command("mintersof")
+        .description("Get all minters of a collection")
+        .argument("<collection>", "Collection address")
+        .action(async (collection) => {
+
+            let spinner = ora("Fetching Minter information").start()
+
+            let config = loadConfig()
+
+            const client = await SigningCosmWasmClient.connect(config.rpc)
+            let collectionData = await client.queryContractSmart(LIGHTHOUSE_CONTRACT, { get_collection: { collection } })
+
+            let minters = []
+
+            for (let i = 0; i < collectionData.supply; i++) {
+
+                let result = await client.queryContractSmart(LIGHTHOUSE_CONTRACT, {
+                    get_minter_of: {
+                        collection,
+                        token_id: (i + collectionData.start_order).toString()
+                    }
+                })
+
+                minters.push({token_id:(i + collectionData.start_order).toString(), minter: result})
+            }
+
+            spinner.succeed("Minters fetched")
+            console.log(minters.map((minter: any) => minter.token_id + " " + minter.minter).join("\n"))
+
+            //ask to save to file
+            const answers = await inquirer.prompt([{
+                type: 'confirm',
+                name: 'save',
+                message: 'Save minters to a file?',
+                default: false
+            }])
+
+            if (answers.save) {
+                const answers = await inquirer.prompt([{
+                    type: 'input',
+                    name: 'file',
+                    message: 'Enter file name',
+                    default: "minters.txt"
+                }])
+                fs.writeFileSync(answers.file, minters.map((minter: any) => minter.token_id + " " + minter.minter).join("\n"))
+            }
+
+        })
+
 
     program
         .command("view-nft")
@@ -738,6 +842,7 @@ const createDefaultConfig = () => {
             royalty_percent: parseFloat(answers.royalty_percentage),
             royalty_wallet: answers.royalty_wallet,
             iterated_uri: true,
+            start_order:1,
             groups: [
                 {
                     name: "public",
@@ -764,4 +869,3 @@ const createDefaultConfig = () => {
 }
 
 main();
-

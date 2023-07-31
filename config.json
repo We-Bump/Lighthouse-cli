@@ -1,6 +1,6 @@
 {
     "mnemonic": "",
-    "rpc": "https://sei-testnet-2-rpc.brocha.in/",
+    "rpc": "",
     "network": "atlantic-2",
     "name": "WeBump",
     "symbol": "BUMP",
@@ -10,6 +10,7 @@
     "royalty_percent": 7,
     "royalty_wallet": "sei14v72v7hgzuvgck6v6jsgjacxnt34gj06qnx53d",
     "iterated_uri":true,
+    "start_order":1,
     "groups": [
         {
             "name": "whitelist",

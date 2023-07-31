@@ -111,6 +111,18 @@ Get owner(s) of specific token ids.
 ```
 $ lighthouse ownerof <collection-address> <token-ids>
 ```
+### `minterof`
+
+Get the minter of token(s)
+```
+$ lighthouse minterof <collection-address> <token-ids>
+```
+### `mintersof`
+
+Get all minters of a collection
+```
+$ lighthouse mintersof <collection-address>
+```
 
 ### `validate`
 
@@ -202,6 +214,8 @@ Lighthouse relies on a `config.json` file for configuration of NFT collections. 
 `royalty_wallet` - wallet to receive royalty
 
 `iterated_uri` - should token_uri generate iterated urls or not (eg: {token_uri}/1, {token_uri}/2, ...)
+
+`start_order` - start token id of the collection (default: 0)
 
 `groups` - array of mint groups
 
