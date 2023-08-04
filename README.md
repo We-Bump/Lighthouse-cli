@@ -3,6 +3,19 @@
 
 Lighthouse is a powerful command line interface tool designed to facilitate the interaction with Non-Fungible Tokens (NFTs) on the SEI blockchain. It allows users to easily update and deploy NFT collections.
 
+## Features
+
+- Deploy NFT collections with royalty option
+- Update NFT collections
+- Freeze/Unfreeze trading of NFT collections
+- Reveal metadata of NFT collections
+- View NFT collections
+- Mint NFTs
+- Generate merkle root for allowlists
+- Generate merkle proof for a wallet
+- Upload metadata and image files to upload to arweave
+
+
 ## Installion
 
 From your command line:
@@ -81,6 +94,26 @@ Update the configuration of an existing NFT collection. You need to provide the 
 ```
 $ lighthouse update <collection-address>
 ```
+### `unfreeze`
+
+Unfreeze trading of a collection.
+```
+$ lighthouse unfreeze <collection-address>
+```
+
+### `update-hidden-metadata`
+
+Update placeholder metadata of hidden frozen collection
+```
+$ lighthouse update-hidden-metadata <collection-address> <placeholder-token-uri>
+```
+
+### `reveal`
+
+Reveal metadata of a collection
+```
+$ lighthouse reveal <collection-address>
+```
 ### `view`
 
 View configuration of a deployed NFT collection.
@@ -145,6 +178,7 @@ Arweave node url `optional` `(default https://arweave.net)`
 ```
 --url <url>
 ```
+
 ## Configuration
 
 Lighthouse relies on a `config.json` file for configuration of NFT collections. If the file does not exist, the CLI will automatically guide you through creating a default one.
@@ -157,11 +191,14 @@ Lighthouse relies on a `config.json` file for configuration of NFT collections. 
   "symbol": "collection-symbol",
   "description": "",
   "supply": 1000,
-  "token_uri": "inherit",
+  "token_uri": "",
   "royalty_percent": 5,
   "royalty_wallet": "royalty-wallet-address",
   "iterated_uri":true,
   "start_order": 1,
+  "frozen": false,
+  "hidden_metadata": false,
+  "placeholder_token_uri": "",
   "groups": [
     {
       "name": "whitelist",
@@ -217,6 +254,12 @@ Lighthouse relies on a `config.json` file for configuration of NFT collections. 
 `iterated_uri` - should token_uri generate iterated urls or not (eg: {token_uri}/1, {token_uri}/2, ...)
 
 `start_order` - start token id of the collection (default: 0)
+
+`frozen` - should the trading be frozen or not (default: false) (can only freezed while deploying and can't be freezed after deployed) 
+
+`hidden_metadata` - should the metadata be hidden and replaced with "placeholder_token_uri" or not (default: false) (can only be hidden while deploying and can't be hidden after deployed)
+
+`placeholder_token_uri` - placeholder token url to use for every nft's metadata if "hidden_metadata" is set to true
 
 `groups` - array of mint groups
 

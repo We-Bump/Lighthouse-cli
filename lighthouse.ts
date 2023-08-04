@@ -12,7 +12,7 @@ import { processCliUpload } from "./arweave"
 import { keccak_256 } from '@noble/hashes/sha3'
 import path from "path"
 
-const LIGHTHOUSE_CONTRACT = "sei15j7am0d65y55ufd0xr9nnd6pyhg0q65qx2c98h3nz5repln9gxks8urz69"
+const LIGHTHOUSE_CONTRACT = "sei1daj8pj34e7n58w45av8qt8y30hkcq2lqav0sqz4pva9twh5a2nyq9m6zq7"
 
 export const saveLogs = (logs: any) => {
     //add logs to log file if exists
@@ -53,7 +53,7 @@ const main = () => {
     program
         .name("lighthouse")
         .description("Lighthouse is a tool for creating NFT collections on the SEI blockchain.")
-        .version("0.2.5")
+        .version("0.3.0")
 
     program
         .command("load-wallet")
@@ -276,7 +276,7 @@ const main = () => {
             const [firstAccount] = await wallet.getAccounts()
 
             const client = await SigningCosmWasmClient.connectWithSigner(config.rpc, wallet, {
-                gasPrice: GasPrice.fromString(answers.gasPrice ? answers.gasPrice + "usei"  : "0.1usei")
+                gasPrice: GasPrice.fromString(answers.gasPrice ? answers.gasPrice + "usei" : "0.1usei")
             })
 
             let lighthouseConfig = await client.queryContractSmart(LIGHTHOUSE_CONTRACT, { get_config: {} })
@@ -432,8 +432,8 @@ const main = () => {
                     token_uri,
                     royalty_percent: config.royalty_percent,
                     royalty_wallet: config.royalty_wallet,
-                    iterated_uri: config.iterated_uri,
-                    start_order: config.start_order,
+                    iterated_uri: config.iterated_uri ? config.iterated_uri : false,
+                    start_order: config.start_order ? config.start_order : null,
                     mint_groups: config.groups.map((group: any) => {
                         return {
                             name: group.name,
@@ -476,7 +476,7 @@ const main = () => {
             const [firstAccount] = await wallet.getAccounts()
 
             var client = await SigningCosmWasmClient.connectWithSigner(config.rpc, wallet, {
-                gasPrice: GasPrice.fromString(answers.gasPrice ? answers.gasPrice + "usei"  : "0.1usei")
+                gasPrice: GasPrice.fromString(answers.gasPrice ? answers.gasPrice + "usei" : "0.1usei")
             })
 
             let spinner;
@@ -485,7 +485,7 @@ const main = () => {
                 let spinner = ora("Deploying CW721 Contract").start()
 
 
-                const contractPath = path.join(__dirname, "./contract.wasm")
+                const contractPath = path.join(__dirname, "./cw2981_lighthouse_edition.wasm")
                 const wasm = fs.readFileSync(contractPath)
                 const uploadReceipt = await client.upload(firstAccount.address, wasm, "auto")
                 codeId = uploadReceipt.codeId
@@ -509,8 +509,11 @@ const main = () => {
                     token_uri,
                     royalty_percent: config.royalty_percent,
                     royalty_wallet: config.royalty_wallet,
-                    iterated_uri: config.iterated_uri,
-                    start_order: config.start_order,
+                    iterated_uri: config.iterated_uri ? config.iterated_uri : false,
+                    start_order: config.start_order ? config.start_order : null,
+                    frozen: config.frozen ? config.frozen : false,
+                    hidden_metadata: config.hidden_metadata ? config.hidden_metadata : false,
+                    placeholder_token_uri: config.placeholder_token_uri ? config.placeholder_token_uri : null,
                     mint_groups: config.groups.map((group: any) => {
                         return {
                             name: group.name,
@@ -548,6 +551,96 @@ const main = () => {
 
             console.log("Transaction hash: " + chalk.green(registerReceipt.transactionHash))
             console.log("Collection address: " + chalk.green(collectionAddress))
+        })
+
+    program
+        .command("unfreeze")
+        .description("Unfreeze a collection")
+        .argument("<collection>")
+        .option("--gas-price <gas_price>", "Gas price to use for transaction  (default: 0.1)")
+        .action(async (collection, options) => {
+            
+            let config = loadConfig()
+
+            const wallet = await DirectSecp256k1HdWallet.fromMnemonic(config.mnemonic, {
+                prefix: "sei",
+            })
+            const [firstAccount] = await wallet.getAccounts()
+
+            const client = await SigningCosmWasmClient.connectWithSigner(config.rpc, wallet, {
+                gasPrice: GasPrice.fromString(options.gasPrice ? options.gasPrice + "usei" : "0.1usei")
+            })
+
+            let spinner = ora("Unfreezing collection").start()
+            const Msg = {
+                unfreeze_collection: { collection }
+            }
+
+            const txReceipt = await client.execute(firstAccount.address, LIGHTHOUSE_CONTRACT, Msg, "auto", "",)
+
+            spinner.succeed("Collection unfrozen")
+            console.log("Transaction hash: " + chalk.green(txReceipt.transactionHash))
+
+        })
+
+    program
+        .command("update-hidden-metadata")
+        .description("Update placeholder metadata of hidden frozen collection")
+        .arguments("<collection> <metadata-url>")
+        .option("--gas-price <gas_price>", "Gas price to use for transaction  (default: 0.1)")
+        .action(async (collection, metadata, options) => {
+
+            let config = loadConfig()
+
+            const wallet = await DirectSecp256k1HdWallet.fromMnemonic(config.mnemonic, {
+                prefix: "sei",
+            })
+            const [firstAccount] = await wallet.getAccounts()
+
+            const client = await SigningCosmWasmClient.connectWithSigner(config.rpc, wallet, {
+                gasPrice: GasPrice.fromString(options.gasPrice ? options.gasPrice + "usei" : "0.1usei")
+            })
+
+            let spinner = ora("Updating").start()
+            const Msg = {
+                update_reveal_collection_metadata: { collection, placeholder_token_uri: metadata }
+            }
+
+            const txReceipt = await client.execute(firstAccount.address, LIGHTHOUSE_CONTRACT, Msg, "auto", "",)
+
+            spinner.succeed("Update complete")
+            console.log("Transaction hash: " + chalk.green(txReceipt.transactionHash))
+
+        })
+
+    program
+        .command("reveal")
+        .description("Reveal a collection")
+        .argument("<collection>")
+        .option("--gas-price <gas_price>", "Gas price to use for transaction  (default: 0.1)")
+        .action(async (collection, options) => {
+
+            let config = loadConfig()
+
+            const wallet = await DirectSecp256k1HdWallet.fromMnemonic(config.mnemonic, {
+                prefix: "sei",
+            })
+            const [firstAccount] = await wallet.getAccounts()
+
+            const client = await SigningCosmWasmClient.connectWithSigner(config.rpc, wallet, {
+                gasPrice: GasPrice.fromString(options.gasPrice ? options.gasPrice + "usei" : "0.1usei")
+            })
+
+            let spinner = ora("Revealing Metadata").start()
+            const Msg = {
+                reveal_collection_metadata: { collection }
+            }
+
+            const txReceipt = await client.execute(firstAccount.address, LIGHTHOUSE_CONTRACT, Msg, "auto", "",)
+
+            spinner.succeed("Metadata revealed")
+            console.log("Transaction hash: " + chalk.green(txReceipt.transactionHash))
+
         })
 
     program
@@ -622,7 +715,7 @@ const main = () => {
                     }
                 })
 
-                minters.push({token_id, minter: result})
+                minters.push({ token_id, minter: result })
             }
 
             spinner.succeed("Minters fetched")
@@ -672,7 +765,7 @@ const main = () => {
                     }
                 })
 
-                minters.push({token_id:(i + collectionData.start_order).toString(), minter: result})
+                minters.push({ token_id: (i + collectionData.start_order).toString(), minter: result })
             }
 
             spinner.succeed("Minters fetched")
@@ -719,6 +812,39 @@ const main = () => {
 
             spinner.succeed("NFT fetched")
             console.log(result)
+
+        })
+
+    program
+        .command("transfer-nft")
+        .description("Transfer NFT")
+        .arguments("<collection> <token_id> <to>")
+        .option("--gas-price <gas_price>", "Gas price to use for transaction  (default: 0.1)")
+        .action(async (collection, tokenId, to, options) => {
+
+            let config = loadConfig()
+
+            const wallet = await DirectSecp256k1HdWallet.fromMnemonic(config.mnemonic, {
+                prefix: "sei",
+            })
+            const [firstAccount] = await wallet.getAccounts()
+
+            const client = await SigningCosmWasmClient.connectWithSigner(config.rpc, wallet, {
+                gasPrice: GasPrice.fromString(options.gasPrice ? options.gasPrice + "usei" : "0.1usei")
+            })
+
+            let spinner = ora("Transferring NFT").start()
+            const transferMsg = {
+                transfer_nft: {
+                    recipient: to,
+                    token_id: tokenId
+                }
+            }
+
+            const txReceipt = await client.execute(firstAccount.address, collection, transferMsg, "auto", "",)
+
+            spinner.succeed("NFT minted")
+            console.log("Transaction hash: " + chalk.green(txReceipt.transactionHash))
 
         })
 
@@ -842,7 +968,10 @@ const createDefaultConfig = () => {
             royalty_percent: parseFloat(answers.royalty_percentage),
             royalty_wallet: answers.royalty_wallet,
             iterated_uri: true,
-            start_order:1,
+            start_order: 1,
+            frozen: false,
+            hidden_metadata: false,
+            placeholder_token_uri: null,
             groups: [
                 {
                     name: "public",
@@ -869,3 +998,4 @@ const createDefaultConfig = () => {
 }
 
 main();
+

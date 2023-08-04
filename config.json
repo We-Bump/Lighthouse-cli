@@ -11,6 +11,9 @@
     "royalty_wallet": "sei14v72v7hgzuvgck6v6jsgjacxnt34gj06qnx53d",
     "iterated_uri":true,
     "start_order":1,
+    "frozen":false,
+    "hidden_metadata":false,
+    "placeholder_token_uri": null,
     "groups": [
         {
             "name": "whitelist",
