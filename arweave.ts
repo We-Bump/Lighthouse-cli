@@ -8,12 +8,14 @@ import chalk from "chalk"
 import fs from "fs"
 import { saveLogs } from "./lighthouse"
 
+const MAX_RETRIES = 3;
+
 export const createArTx = async (arweave: Arweave, data: Buffer, wallet: any, contentType: string) => {
 
     let tags = new Tags()
     tags.addTag('Content-Type', contentType)
     tags.addTag('User-Agent', "lighthouse")
-    tags.addTag('User-Agent-Version', "0.3.0")
+    tags.addTag('User-Agent-Version', "0.3.1")
     tags.addTag('Type', 'file')
     tags.addTag('File-Hash', hashFile(data))
 
@@ -258,7 +260,7 @@ export const processCliUpload = async (answers: any) => {
         let metadata = JSON.parse(fs.readFileSync("./assets/" + file, "utf-8"))
         let metadataFileSize = Buffer.from(JSON.stringify(metadata)).length
         let imageFileSize = fs.statSync("./assets/" + metadata.image).size
-        
+
         if (cache.metadata.filter((m: any) => m.name === file.split(".json")[0]).length > 0)
             metadataFileSize = 0
 
@@ -288,7 +290,7 @@ export const processCliUpload = async (answers: any) => {
     let address = await arweave.wallets.jwkToAddress(wallet)
     let balance = await arweave.wallets.getBalance(address)
 
-    if (BigInt(balance) < BigInt(cost)){
+    if (BigInt(balance) < BigInt(cost)) {
         spinner.fail("Insufficient AR balance")
         return
     }
@@ -300,7 +302,9 @@ export const processCliUpload = async (answers: any) => {
     spinner = ora("Uploading images").start()
     let counter = 0
     //upload images
-    for (let file of files) {
+    for (let i = 0; i < files.length; i++) {
+        let retryCount = 0;
+        let file = files[i]
         let metadata = JSON.parse(fs.readFileSync("./assets/" + file, "utf-8"))
 
         //if metadata.image is not in cache.images, upload it
@@ -309,27 +313,57 @@ export const processCliUpload = async (answers: any) => {
         }
 
         let image = fs.readFileSync("./assets/" + metadata.image)
-        let tx = await createArTx(arweave, image, wallet, contentTypeOf(metadata.image))
-        tx = await signArTx(arweave, tx, wallet)
-        try {
-            await submitArTx(arweave, tx)
-            cache.images.push({
-                name: metadata.image,
-                txid: tx.id
-            })
 
-            counter++
-            spinner.text = "Uploading images (" + counter + "/" + files.length + ") - (failed: " + failedImages.length + ")"
-        } catch (e) {
-            failedImages.push(metadata.image)
-            counter++
-            spinner.text = "Uploading images (" + counter + "/" + files.length + ") - (failed: " + failedImages.length + ")"
+        while (retryCount < MAX_RETRIES) {
+            try {
+                let tx = await createArTx(arweave, image, wallet, contentTypeOf(metadata.image))
+                tx = await signArTx(arweave, tx, wallet)
 
-            logs.push({
-                type: "error",
-                message: "Failed to upload image " + metadata.image,
-                error: e
-            })
+                await submitArTx(arweave, tx)
+                cache.images.push({
+                    name: metadata.image,
+                    txid: tx.id
+                })
+
+                counter++
+                spinner.text = "Uploading images (" + counter + "/" + files.length + ") - (failed: " + failedImages.length + ")"
+                break;
+            } catch (e: any) {
+                if (e.message.indexOf("429") !== -1) {
+                    let waitTime = (2 ** retryCount) * 60000; // Exponential backoff
+                    spinner.text = `Rate limit reached, waiting ${waitTime / 60000} minutes`;
+                    await delay(waitTime);
+                    retryCount++;
+                } else {
+                    failedImages.push(metadata.image);
+                    counter++;
+                    spinner.text = "Uploading images (" + counter + "/" + files.length + ") - (failed: " + failedImages.length + ")";
+
+                    logs.push({
+                        type: "error",
+                        message: "Failed to upload image " + metadata.image,
+                        error: e
+                    });
+                    break;
+                }
+            }
+
+            // If the retry count has reached the maximum, log the failure and stop the CLI
+            if (retryCount === MAX_RETRIES) {
+                logs.push({
+                    type: "fatal",
+                    message: `Failed to upload image ${metadata.image} after ${MAX_RETRIES} retries.`,
+                    error: `Error 429: Too Many Requests`
+                });
+
+                // Save logs before exiting
+                saveLogs(logs);
+
+                //save cache  before exiting
+                fs.writeFileSync("./cache.json", JSON.stringify(cache, null, 4))
+
+                throw new Error(`Failed to upload image ${metadata.image} after ${MAX_RETRIES} retries. (429)`);
+            }
         }
     }
 
@@ -390,7 +424,9 @@ export const processCliUpload = async (answers: any) => {
     fs.writeFileSync("./cache.json", JSON.stringify(cache, null, 4))
 
     //upload metadata
-    for (let file of files) {
+    for (let i = 0; i < files.length; i++) {
+        let retryCount = 0;
+        let file = files[i]
         let metadata = JSON.parse(fs.readFileSync("./assets/" + file, "utf-8"))
         //replace image with imagesManifest + txid
         metadata.image = fullurl + "/" + cache.imagesManifest + "/" + metadata.image
@@ -400,27 +436,56 @@ export const processCliUpload = async (answers: any) => {
             continue
         }
 
-        let tx = await createArTx(arweave, Buffer.from(JSON.stringify(metadata)), wallet, "application/json")
-        tx = await signArTx(arweave, tx, wallet)
-        try {
-            await submitArTx(arweave, tx)
-            cache.metadata.push({
-                name: file.split(".json")[0],
-                txid: tx.id
-            })
+        while (retryCount < MAX_RETRIES) {
+            try {
+                let tx = await createArTx(arweave, Buffer.from(JSON.stringify(metadata)), wallet, "application/json")
+                tx = await signArTx(arweave, tx, wallet)
 
-            counter++
-            spinner.text = "Uploading metadata (" + counter + "/" + files.length + ") - (failed: " + failedMetadata.length + ")"
-        } catch (e) {
-            failedMetadata.push(file)
-            counter++
-            spinner.text = "Uploading metadata (" + counter + "/" + files.length + ") - (failed: " + failedMetadata.length + ")"
+                await submitArTx(arweave, tx)
+                cache.metadata.push({
+                    name: file.split(".json")[0],
+                    txid: tx.id
+                })
 
+                counter++
+                spinner.text = "Uploading metadata (" + counter + "/" + files.length + ") - (failed: " + failedMetadata.length + ")"
+                break;
+            } catch (e: any) {
+                if (e.message.indexOf("429") !== -1) {
+                    let waitTime = (2 ** retryCount) * 60000; // Exponential backoff
+                    spinner.text = `Rate limit reached, waiting ${waitTime / 60000} minutes`;
+                    await delay(waitTime);
+                    retryCount++;
+                } else {
+                    failedMetadata.push(file)
+                    counter++
+                    spinner.text = "Uploading metadata (" + counter + "/" + files.length + ") - (failed: " + failedMetadata.length + ")"
+
+                    logs.push({
+                        type: "error",
+                        message: "Failed to upload metadata " + file,
+                        error: e
+                    })
+                    break;
+                }
+            }
+        }
+
+        // If the retry count has reached the maximum, log the failure and stop the CLI
+        if (retryCount === MAX_RETRIES) {
             logs.push({
-                type: "error",
-                message: "Failed to upload metadata " + file,
-                error: e
-            })
+                type: "fatal",
+                message: `Failed to upload metadata ${counter} after ${MAX_RETRIES} retries.`,
+                error: `Error 429: Too Many Requests`
+            });
+
+            // Save logs before exiting
+            saveLogs(logs);
+
+            //save cache  before exiting
+            fs.writeFileSync("./cache.json", JSON.stringify(cache, null, 4))
+
+            throw new Error(`Failed to upload metadata ${counter} after ${MAX_RETRIES} retries. (429)`);
         }
     }
 
@@ -467,7 +532,7 @@ export const processCliUpload = async (answers: any) => {
         saveLogs(logs)
         return
     }
-    
+
 
     spinner.succeed("Metadata manifest uploaded")
 
@@ -505,3 +570,5 @@ export const processCliUpload = async (answers: any) => {
         console.log(chalk.green("Done!"))
     }
 }
+
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
