@@ -15,7 +15,7 @@ export const createArTx = async (arweave: Arweave, data: Buffer, wallet: any, co
     let tags = new Tags()
     tags.addTag('Content-Type', contentType)
     tags.addTag('User-Agent', "lighthouse")
-    tags.addTag('User-Agent-Version', "0.3.1")
+    tags.addTag('User-Agent-Version', "0.3.2")
     tags.addTag('Type', 'file')
     tags.addTag('File-Hash', hashFile(data))
 
@@ -329,12 +329,25 @@ export const processCliUpload = async (answers: any) => {
                 spinner.text = "Uploading images (" + counter + "/" + files.length + ") - (failed: " + failedImages.length + ")"
                 break;
             } catch (e: any) {
-                if (e.message.indexOf("429") !== -1) {
-                    let waitTime = (2 ** retryCount) * 60000; // Exponential backoff
-                    spinner.text = `Rate limit reached, waiting ${waitTime / 60000} minutes`;
-                    await delay(waitTime);
-                    retryCount++;
-                } else {
+                try {
+                    if (e.message && e.message.indexOf("429") !== -1) {
+                        let waitTime = (2 ** retryCount) * 60000; // Exponential backoff
+                        spinner.text = `Rate limit reached, waiting ${waitTime / 60000} minutes`;
+                        await delay(waitTime);
+                        retryCount++;
+                    } else {
+                        failedImages.push(metadata.image);
+                        counter++;
+                        spinner.text = "Uploading images (" + counter + "/" + files.length + ") - (failed: " + failedImages.length + ")";
+
+                        logs.push({
+                            type: "error",
+                            message: "Failed to upload image " + metadata.image,
+                            error: e
+                        });
+                        break;
+                    }
+                } catch (e) {
                     failedImages.push(metadata.image);
                     counter++;
                     spinner.text = "Uploading images (" + counter + "/" + files.length + ") - (failed: " + failedImages.length + ")";
@@ -451,12 +464,25 @@ export const processCliUpload = async (answers: any) => {
                 spinner.text = "Uploading metadata (" + counter + "/" + files.length + ") - (failed: " + failedMetadata.length + ")"
                 break;
             } catch (e: any) {
-                if (e.message.indexOf("429") !== -1) {
-                    let waitTime = (2 ** retryCount) * 60000; // Exponential backoff
-                    spinner.text = `Rate limit reached, waiting ${waitTime / 60000} minutes`;
-                    await delay(waitTime);
-                    retryCount++;
-                } else {
+                try {
+                    if (e.message && e.message.indexOf("429") !== -1) {
+                        let waitTime = (2 ** retryCount) * 60000; // Exponential backoff
+                        spinner.text = `Rate limit reached, waiting ${waitTime / 60000} minutes`;
+                        await delay(waitTime);
+                        retryCount++;
+                    } else {
+                        failedMetadata.push(file)
+                        counter++
+                        spinner.text = "Uploading metadata (" + counter + "/" + files.length + ") - (failed: " + failedMetadata.length + ")"
+
+                        logs.push({
+                            type: "error",
+                            message: "Failed to upload metadata " + file,
+                            error: e
+                        })
+                        break;
+                    }
+                } catch (e) {
                     failedMetadata.push(file)
                     counter++
                     spinner.text = "Uploading metadata (" + counter + "/" + files.length + ") - (failed: " + failedMetadata.length + ")"
