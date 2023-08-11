@@ -53,7 +53,7 @@ const main = () => {
     program
         .name("lighthouse")
         .description("Lighthouse is a tool for creating NFT collections on the SEI blockchain.")
-        .version("0.3.2")
+        .version("0.3.3")
 
     program
         .command("load-wallet")

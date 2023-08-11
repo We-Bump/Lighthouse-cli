@@ -15,7 +15,7 @@ export const createArTx = async (arweave: Arweave, data: Buffer, wallet: any, co
     let tags = new Tags()
     tags.addTag('Content-Type', contentType)
     tags.addTag('User-Agent', "lighthouse")
-    tags.addTag('User-Agent-Version', "0.3.2")
+    tags.addTag('User-Agent-Version', "0.3.3")
     tags.addTag('Type', 'file')
     tags.addTag('File-Hash', hashFile(data))
 
@@ -408,9 +408,9 @@ export const processCliUpload = async (answers: any) => {
             })
         }
 
-        let manifestTx = await createManifestTx(arweave, manifest, wallet)
-        manifestTx = await signArTx(arweave, manifestTx, wallet)
         try {
+            let manifestTx = await createManifestTx(arweave, manifest, wallet)
+            manifestTx = await signArTx(arweave, manifestTx, wallet)
             await submitArTx(arweave, manifestTx)
             cache.imagesManifest = manifestTx.id
         } catch (e) {
@@ -540,9 +540,9 @@ export const processCliUpload = async (answers: any) => {
         })
     }
 
-    let manifestTx = await createManifestTx(arweave, manifest, wallet)
-    manifestTx = await signArTx(arweave, manifestTx, wallet)
     try {
+        let manifestTx = await createManifestTx(arweave, manifest, wallet)
+        manifestTx = await signArTx(arweave, manifestTx, wallet)
         await submitArTx(arweave, manifestTx)
         cache.metadataManifest = manifestTx.id
     } catch (e) {
