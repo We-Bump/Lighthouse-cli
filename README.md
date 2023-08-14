@@ -251,7 +251,8 @@ Lighthouse relies on a `config.json` file for configuration of NFT collections. 
 
 `royalty_wallet` - wallet to receive royalty
 
-`iterated_uri` - should token_uri generate iterated urls or not (eg: {token_uri}/1, {token_uri}/2, ...)
+`iterated_uri` - should disable token_uri generate for iterated urls or not (eg: {token_uri}/1, {token_uri}/2, ...) 
+(if set to true every nft will have same metadata url and if set to false every nft will have different metadata url)
 
 `start_order` - start token id of the collection (default: 0)
 
@@ -283,3 +284,7 @@ Lighthouse relies on a `config.json` file for configuration of NFT collections. 
 ## Contributing
 
 Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
+
+### Note
+
+While minting, minters have to pay determined Lighthouse platform fee on every mint. (if mint is free, no fee will be charged)

@@ -12,7 +12,20 @@ import { processCliUpload } from "./arweave"
 import { keccak_256 } from '@noble/hashes/sha3'
 import path from "path"
 
-const LIGHTHOUSE_CONTRACT = "sei1daj8pj34e7n58w45av8qt8y30hkcq2lqav0sqz4pva9twh5a2nyq9m6zq7"
+const LIGHTHOUSE_CONTRACT_ATLANTIC_2 = "sei12gjnfdh2kz06qg6e4y997jfgpat6xpv9dw58gtzn6g75ysy8yt5snzf4ac"
+const LIGHTHOUSE_CONTRACT_PACIFIC_1 = "sei1hjsqrfdg2hvwl3gacg4fkznurf36usrv7rkzkyh29wz3guuzeh0snslz7d"
+
+const getLighthouseContract = (network: string) => {
+    if (network === "pacific-1") {
+        return LIGHTHOUSE_CONTRACT_PACIFIC_1;
+    } else if (network === "atlantic-2") {
+        return LIGHTHOUSE_CONTRACT_ATLANTIC_2;
+    }else if (network === "sei-chain"){
+        return ""
+    } else {
+        throw new Error("Invalid network");
+    }
+}
 
 export const saveLogs = (logs: any) => {
     //add logs to log file if exists
@@ -53,7 +66,7 @@ const main = () => {
     program
         .name("lighthouse")
         .description("Lighthouse is a tool for creating NFT collections on the SEI blockchain.")
-        .version("0.3.4")
+        .version("0.3.5")
 
     program
         .command("load-wallet")
@@ -115,8 +128,8 @@ const main = () => {
                 {
                     type: "list",
                     name: "network",
-                    message: "What is the network you want to use?",
-                    choices: ['atlantic-2']
+                    message: "What is the network you want to use? (pacific-1 is the mainnet, atlantic-2 is the testnet)",
+                    choices: ['pacific-1', 'atlantic-2']
                 }
             ])
 
@@ -279,8 +292,8 @@ const main = () => {
                 gasPrice: GasPrice.fromString(answers.gasPrice ? answers.gasPrice + "usei" : "0.1usei")
             })
 
-            let lighthouseConfig = await client.queryContractSmart(LIGHTHOUSE_CONTRACT, { get_config: {} })
-            let collectionConfig = await client.queryContractSmart(LIGHTHOUSE_CONTRACT, { get_collection: { collection } })
+            let lighthouseConfig = await client.queryContractSmart(getLighthouseContract(config.network), { get_config: {} })
+            let collectionConfig = await client.queryContractSmart(getLighthouseContract(config.network), { get_collection: { collection } })
 
             let group: any = null
 
@@ -342,7 +355,7 @@ const main = () => {
             }];
 
 
-            const mintReceipt = await client.execute(firstAccount.address, LIGHTHOUSE_CONTRACT, mintMsg, "auto", "", coins)
+            const mintReceipt = await client.execute(firstAccount.address, getLighthouseContract(config.network), mintMsg, "auto", "", coins)
 
             spinner.succeed("NFT minted")
             console.log("Transaction hash: " + chalk.green(mintReceipt.transactionHash))
@@ -377,7 +390,7 @@ const main = () => {
 
 
             const client = await SigningCosmWasmClient.connect(config.rpc)
-            client.queryContractSmart(LIGHTHOUSE_CONTRACT, { get_collection: { collection } }).then((result) => {
+            client.queryContractSmart(getLighthouseContract(config.network), { get_collection: { collection } }).then((result) => {
                 spinner.succeed("Collection information fetched")
 
                 let groups = result.mint_groups.map((group: any) => {
@@ -448,7 +461,7 @@ const main = () => {
                 }
             }
 
-            const updateReceipt = await client.execute(firstAccount.address, LIGHTHOUSE_CONTRACT, updateMsg, "auto")
+            const updateReceipt = await client.execute(firstAccount.address, getLighthouseContract(config.network), updateMsg, "auto")
 
             spinner.succeed("Collection updated")
             console.log("Transaction hash: " + chalk.green(updateReceipt.transactionHash))
@@ -530,7 +543,7 @@ const main = () => {
 
             spinner = ora("Registering Collection").start()
 
-            const registerReceipt = await client.execute(firstAccount.address, LIGHTHOUSE_CONTRACT, registerMsg, "auto")
+            const registerReceipt = await client.execute(firstAccount.address, getLighthouseContract(config.network), registerMsg, "auto")
 
             spinner.succeed("Collection registered to Lighthouse")
 
@@ -576,7 +589,7 @@ const main = () => {
                 unfreeze_collection: { collection }
             }
 
-            const txReceipt = await client.execute(firstAccount.address, LIGHTHOUSE_CONTRACT, Msg, "auto", "",)
+            const txReceipt = await client.execute(firstAccount.address, getLighthouseContract(config.network), Msg, "auto", "",)
 
             spinner.succeed("Collection unfrozen")
             console.log("Transaction hash: " + chalk.green(txReceipt.transactionHash))
@@ -606,7 +619,7 @@ const main = () => {
                 update_reveal_collection_metadata: { collection, placeholder_token_uri: metadata }
             }
 
-            const txReceipt = await client.execute(firstAccount.address, LIGHTHOUSE_CONTRACT, Msg, "auto", "",)
+            const txReceipt = await client.execute(firstAccount.address, getLighthouseContract(config.network), Msg, "auto", "",)
 
             spinner.succeed("Update complete")
             console.log("Transaction hash: " + chalk.green(txReceipt.transactionHash))
@@ -636,7 +649,7 @@ const main = () => {
                 reveal_collection_metadata: { collection }
             }
 
-            const txReceipt = await client.execute(firstAccount.address, LIGHTHOUSE_CONTRACT, Msg, "auto", "",)
+            const txReceipt = await client.execute(firstAccount.address, getLighthouseContract(config.network), Msg, "auto", "",)
 
             spinner.succeed("Metadata revealed")
             console.log("Transaction hash: " + chalk.green(txReceipt.transactionHash))
@@ -708,7 +721,7 @@ const main = () => {
 
             for (let token_id of token_ids.split(",")) {
 
-                let result = await client.queryContractSmart(LIGHTHOUSE_CONTRACT, {
+                let result = await client.queryContractSmart(getLighthouseContract(config.network), {
                     get_minter_of: {
                         collection,
                         token_id
@@ -752,13 +765,13 @@ const main = () => {
             let config = loadConfig()
 
             const client = await SigningCosmWasmClient.connect(config.rpc)
-            let collectionData = await client.queryContractSmart(LIGHTHOUSE_CONTRACT, { get_collection: { collection } })
+            let collectionData = await client.queryContractSmart(getLighthouseContract(config.network), { get_collection: { collection } })
 
             let minters = []
 
             for (let i = 0; i < collectionData.supply; i++) {
 
-                let result = await client.queryContractSmart(LIGHTHOUSE_CONTRACT, {
+                let result = await client.queryContractSmart(getLighthouseContract(config.network), {
                     get_minter_of: {
                         collection,
                         token_id: (i + collectionData.start_order).toString()
@@ -847,8 +860,7 @@ const main = () => {
             console.log("Transaction hash: " + chalk.green(txReceipt.transactionHash))
 
         })
-
-
+        
     program
         .command("list", { hidden: true })
         .option("--start-after <start_after>", "Start listing after this address")
@@ -866,7 +878,7 @@ const main = () => {
 
 
             const client = await SigningCosmWasmClient.connect(config.rpc)
-            client.queryContractSmart(LIGHTHOUSE_CONTRACT, {
+            client.queryContractSmart(getLighthouseContract(config.network), {
                 get_collections: {
                     start_after,
                     limit: limit ? parseInt(limit) : null,
