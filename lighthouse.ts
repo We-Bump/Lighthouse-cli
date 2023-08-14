@@ -66,7 +66,7 @@ const main = () => {
     program
         .name("lighthouse")
         .description("Lighthouse is a tool for creating NFT collections on the SEI blockchain.")
-        .version("0.3.5")
+        .version("0.3.6")
 
     program
         .command("load-wallet")
@@ -963,8 +963,8 @@ const createDefaultConfig = () => {
         {
             type: "list",
             name: "network",
-            message: "What is the network you want to use?",
-            choices: ['atlantic-2']
+            message: "What is the network you want to use? (pacific-1 is the mainnet, atlantic-2 is the testnet)",
+            choices: ['pacific-1', 'atlantic-2']
         }
     ]).then(async (answers) => {
 
