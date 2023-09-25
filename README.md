@@ -287,4 +287,4 @@ Pull requests are welcome. For major changes, please open an issue first to disc
 
 ### Note
 
-While minting, minters have to pay 5 $SEI for Lighthouse platform fee on every minted nft. (if mint is free, no fee will be charged)
+While minting, minters have to pay 1.5 $SEI for Lighthouse platform fee on every minted nft. (if mint is free, no fee will be charged)
