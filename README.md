@@ -157,6 +157,33 @@ Get all minters of a collection
 $ lighthouse mintersof <collection-address>
 ```
 
+### `mintersof`
+
+Get all minters of a collection
+```
+$ lighthouse mintersof <collection-address>
+```
+
+### `snapshot`
+
+Snapshot holders of a collection
+```
+$ lighthouse snapshot <collection-address>
+```
+##### options
+Exclude contract addresses
+```sh
+--exclude-contracts
+```
+Output file name
+```
+--output <file>
+```
+Output how many tokens each holder owns
+```
+--count
+```
+
 ### `validate`
 
 Validate metadata and image files to upload to arweave. `(metadata files must be in ./assets folder)`

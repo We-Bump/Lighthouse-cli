@@ -9,7 +9,7 @@
     "token_uri": "https://arweave.net/t1S4RJWPM9MMcSydkL1FdeUns0ldqZAKfsmEYwrzE-E",
     "royalty_percent": 7,
     "royalty_wallet": "sei14v72v7hgzuvgck6v6jsgjacxnt34gj06qnx53d",
-    "iterated_uri":true,
+    "iterated_uri":false,
     "start_order":1,
     "frozen":false,
     "hidden_metadata":false,

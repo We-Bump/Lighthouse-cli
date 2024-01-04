@@ -11,6 +11,7 @@ import BigNumber from 'bignumber.js';
 import { processCliUpload } from "./arweave"
 import { keccak_256 } from '@noble/hashes/sha3'
 import path from "path"
+import PromisePool from '@supercharge/promise-pool';
 
 const LIGHTHOUSE_CONTRACT_ATLANTIC_2 = "sei12gjnfdh2kz06qg6e4y997jfgpat6xpv9dw58gtzn6g75ysy8yt5snzf4ac"
 const LIGHTHOUSE_CONTRACT_PACIFIC_1 = "sei1hjsqrfdg2hvwl3gacg4fkznurf36usrv7rkzkyh29wz3guuzeh0snslz7d"
@@ -20,7 +21,7 @@ const getLighthouseContract = (network: string) => {
         return LIGHTHOUSE_CONTRACT_PACIFIC_1;
     } else if (network === "atlantic-2") {
         return LIGHTHOUSE_CONTRACT_ATLANTIC_2;
-    }else if (network === "sei-chain"){
+    } else if (network === "sei-chain") {
         return ""
     } else {
         throw new Error("Invalid network");
@@ -66,7 +67,7 @@ const main = () => {
     program
         .name("lighthouse")
         .description("Lighthouse is a tool for creating NFT collections on the SEI blockchain.")
-        .version("0.3.6")
+        .version("0.3.7")
 
     program
         .command("load-wallet")
@@ -572,7 +573,7 @@ const main = () => {
         .argument("<collection>")
         .option("--gas-price <gas_price>", "Gas price to use for transaction  (default: 0.1)")
         .action(async (collection, options) => {
-            
+
             let config = loadConfig()
 
             const wallet = await DirectSecp256k1HdWallet.fromMnemonic(config.mnemonic, {
@@ -655,6 +656,82 @@ const main = () => {
             console.log("Transaction hash: " + chalk.green(txReceipt.transactionHash))
 
         })
+
+    program
+        .command("snapshot")
+        .description("Snapshot holders of a collection")
+        .argument("<collection>")
+        .option('-e, --exclude-contracts', 'Exclude contract addresses')
+        .option('-o, --output <file>', 'Output file name')
+        .option('-c, --count', 'Output how many tokens each holder owns')
+        .action(async (collection, options) => {
+            let spinner = ora("Fetching holders").start();
+            let config = loadConfig();
+            const client = await SigningCosmWasmClient.connect(config.rpc);
+
+            let numTokensResult = await client.queryContractSmart(collection, {
+                num_tokens: {}
+            });
+            let numTokens = parseInt(numTokensResult.count);
+
+            let startTokenId = 1;
+            try {
+                await client.queryContractSmart(collection, {
+                    owner_of: { token_id: '0' }
+                });
+                startTokenId = 0; // token ID 0 exists, start from 0
+            } catch (error) {
+                // assuming an error means Token ID 0 does not exist
+            }
+
+            const { results, errors } = await PromisePool
+                .withConcurrency(10)
+                .for([...Array(numTokens).keys()].map(i => String(i + startTokenId)))
+                .process(async token_id => {
+                    try {
+                        let result = await client.queryContractSmart(collection, {
+                            owner_of: { token_id }
+                        });
+                        return result.owner;
+                    } catch (error) {
+                        console.error(`Error fetching owner for token ${token_id}:`, error);
+                        return false;
+                    }
+                });
+
+            let owners = results.filter(o => o !== false);
+            if (options.excludeContracts) {
+                owners = owners.filter(o => o.length <= 42);
+            }
+
+            spinner.succeed("Holders fetched");
+
+            let outputData = '';
+            if (options.count) {
+                const ownerCounts = owners.reduce((acc, owner) => {
+                    acc[owner] = (acc[owner] || 0) + 1;
+                    return acc;
+                }, {});
+                outputData = Object.entries(ownerCounts).map(([owner, count]) => `${owner}: ${count}`).join('\n');
+            } else {
+                owners = owners.filter((o, i, arr) => arr.indexOf(o) === i);
+                outputData = owners.join('\n');
+            }
+
+            let outputFileName = options.output;
+
+            if (!outputFileName) {
+                const answers = await inquirer.prompt([{
+                    type: 'input',
+                    name: 'file',
+                    message: 'Enter file name to save snapshot to',
+                    default: "owners.txt"
+                }])
+                outputFileName = answers.file
+            }
+            fs.writeFileSync(outputFileName, owners.join("\n"))
+            console.log(`Snapshot saved to ${outputFileName}`);
+        });
 
     program
         .command("ownerof")
@@ -860,7 +937,7 @@ const main = () => {
             console.log("Transaction hash: " + chalk.green(txReceipt.transactionHash))
 
         })
-        
+
     program
         .command("list", { hidden: true })
         .option("--start-after <start_after>", "Start listing after this address")
