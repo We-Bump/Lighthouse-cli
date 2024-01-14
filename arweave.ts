@@ -187,6 +187,11 @@ export const processCliUpload = async (answers: any) => {
 
     let files = fs.readdirSync("./assets").filter((file) => file.endsWith(".json"))
 
+    if (files.length === 0) {
+        spinner.fail("No files found in assets folder")
+        return
+    }
+
     //validate images
     for (let file of files) {
         try {
