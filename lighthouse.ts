@@ -350,13 +350,26 @@ const main = () => {
                 }
             }
 
-            const coins = [{
-                denom: 'usei',
-                amount: new BigNumber(group.unit_price).plus(new BigNumber(lighthouseConfig.fee)).toString()
-            }];
+            interface Coin {
+                denom: string;
+                amount: string;
+            }
+            
+            let coins: Coin[] = [];
 
+            if (new BigNumber(group.unit_price).isGreaterThan(0)) {
+                coins = [{
+                    denom: 'usei',
+                    amount: new BigNumber(group.unit_price).plus(new BigNumber(lighthouseConfig.fee)).toString()
+                }];
+            }
 
-            const mintReceipt = await client.execute(firstAccount.address, getLighthouseContract(config.network), mintMsg, "auto", "", coins)
+            let mintReceipt;
+            if (coins.length > 0) {
+                mintReceipt = await client.execute(firstAccount.address, getLighthouseContract(config.network), mintMsg, "auto", "", coins);
+            } else {
+                mintReceipt = await client.execute(firstAccount.address, getLighthouseContract(config.network), mintMsg, "auto", "", []);
+            }
 
             spinner.succeed("NFT minted")
             console.log("Transaction hash: " + chalk.green(mintReceipt.transactionHash))
