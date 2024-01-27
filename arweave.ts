@@ -14,7 +14,7 @@ export const createArTx = async (arweave: Arweave, data: Buffer, wallet: any, co
     let tags = new Tags()
     tags.addTag('Content-Type', contentType)
     tags.addTag('User-Agent', "lighthouse")
-    tags.addTag('User-Agent-Version', "0.3.7")
+    tags.addTag('User-Agent-Version', "0.3.8")
     tags.addTag('Type', 'file')
     tags.addTag('File-Hash', hashFile(data))
 

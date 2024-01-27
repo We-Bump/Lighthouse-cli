@@ -3,7 +3,7 @@ import ora from "ora"
 import inquirer from "inquirer"
 import chalk from "chalk"
 import fs from "fs"
-import { DirectSecp256k1HdWallet } from "@cosmjs/proto-signing"
+import { DirectSecp256k1HdWallet, DirectSecp256k1Wallet } from "@cosmjs/proto-signing"
 import { SigningCosmWasmClient } from "@cosmjs/cosmwasm-stargate"
 import { GasPrice } from "@cosmjs/stargate";
 import { MerkleTree } from 'merkletreejs';
@@ -49,8 +49,18 @@ const loadConfig = () => {
     if (fs.existsSync("./config.json")) {
         let config = JSON.parse(fs.readFileSync("./config.json", "utf-8"))
 
-        if (!config.mnemonic || !config.rpc || !config.network) {
-            console.log(chalk.red("\nConfig file is missing required fields (mnemonic, rpc, network)"))
+        if (!config.rpc || !config.network) {
+            console.log(chalk.red("\nConfig file is missing required fields (rpc, network)"))
+            process.exit(1)
+        }
+
+        if (!config.mnemonic && !config.private_key) {
+            console.log(chalk.red("\nConfig file is missing required fields (mnemonic or private_key)"))
+            process.exit(1)
+        }
+
+        if (config.mnemonic && config.private_key) {
+            console.log(chalk.red("\nConfig file can only contain one of (mnemonic or private_key)"))
             process.exit(1)
         }
 
@@ -62,32 +72,68 @@ const loadConfig = () => {
     }
 }
 
+const getWallet = async (config: any) => {
+
+    if (config.mnemonic) {
+        return await DirectSecp256k1HdWallet.fromMnemonic(config.mnemonic, {
+            prefix: "sei",
+        })
+    } else if (config.private_key) {
+        let pk = config.private_key
+        if (pk.startsWith("0x")) {
+            pk = pk.slice(2)
+        }
+        return await DirectSecp256k1Wallet.fromKey(Buffer.from(pk, 'hex'), "sei")
+    } else {
+        throw new Error("Invalid config");
+    }
+
+}
+
 const main = () => {
 
     program
         .name("lighthouse")
         .description("Lighthouse is a tool for creating NFT collections on the SEI blockchain.")
-        .version("0.3.7")
+        .version("0.3.8")
 
     program
         .command("load-wallet")
         .description("Load a wallet from a mnemonic")
         .action(async () => {
+
+            //choice if private key or mnemonic
+            let walletType = await inquirer.prompt([
+                {
+                    type: "list",
+                    name: "walletType",
+                    message: "What type of wallet do you want to load?",
+                    choices: ['Mnemonic', 'Private Key']
+                }
+            ])
+
             let wallet = await inquirer.prompt([
                 {
                     type: "input",
                     name: "wallet",
-                    message: "What is the mnemonic keyphrase of the address you want to use in lighthouse?"
+                    message: "Enter your " + walletType.walletType + ":"
                 }
             ])
 
             if (fs.existsSync("./config.json")) {
                 let config = JSON.parse(fs.readFileSync("./config.json", "utf-8"))
-                config.mnemonic = wallet.wallet
+                if (walletType.walletType === "Mnemonic") {
+                    config.mnemonic = wallet.wallet
+                } else {
+                    config.private_key = wallet.wallet
+                }
                 fs.writeFileSync("./config.json", JSON.stringify(config, null, 4))
             } else {
-                let config = {
-                    mnemonic: wallet.wallet
+                let config: any = {}
+                if (walletType.walletType === "Mnemonic") {
+                    config.mnemonic = wallet.wallet
+                } else {
+                    config.private_key = wallet.wallet
                 }
                 fs.writeFileSync("./config.json", JSON.stringify(config, null, 4))
             }
@@ -284,9 +330,7 @@ const main = () => {
 
             let config = loadConfig()
 
-            const wallet = await DirectSecp256k1HdWallet.fromMnemonic(config.mnemonic, {
-                prefix: "sei",
-            })
+            const wallet = await getWallet(config)
             const [firstAccount] = await wallet.getAccounts()
 
             const client = await SigningCosmWasmClient.connectWithSigner(config.rpc, wallet, {
@@ -354,7 +398,7 @@ const main = () => {
                 denom: string;
                 amount: string;
             }
-            
+
             let coins: Coin[] = [];
 
             if (new BigNumber(group.unit_price).isGreaterThan(0)) {
@@ -434,9 +478,7 @@ const main = () => {
             //load config
             let config = loadConfig()
 
-            const wallet = await DirectSecp256k1HdWallet.fromMnemonic(config.mnemonic, {
-                prefix: "sei",
-            })
+            const wallet = await getWallet(config)
 
             const [firstAccount] = await wallet.getAccounts()
 
@@ -496,9 +538,7 @@ const main = () => {
             let config = loadConfig()
 
 
-            const wallet = await DirectSecp256k1HdWallet.fromMnemonic(config.mnemonic, {
-                prefix: "sei",
-            })
+            const wallet = await getWallet(config)
 
             const [firstAccount] = await wallet.getAccounts()
 
@@ -589,9 +629,7 @@ const main = () => {
 
             let config = loadConfig()
 
-            const wallet = await DirectSecp256k1HdWallet.fromMnemonic(config.mnemonic, {
-                prefix: "sei",
-            })
+            const wallet = await getWallet(config)
             const [firstAccount] = await wallet.getAccounts()
 
             const client = await SigningCosmWasmClient.connectWithSigner(config.rpc, wallet, {
@@ -619,9 +657,7 @@ const main = () => {
 
             let config = loadConfig()
 
-            const wallet = await DirectSecp256k1HdWallet.fromMnemonic(config.mnemonic, {
-                prefix: "sei",
-            })
+            const wallet = await getWallet(config)
             const [firstAccount] = await wallet.getAccounts()
 
             const client = await SigningCosmWasmClient.connectWithSigner(config.rpc, wallet, {
@@ -649,9 +685,7 @@ const main = () => {
 
             let config = loadConfig()
 
-            const wallet = await DirectSecp256k1HdWallet.fromMnemonic(config.mnemonic, {
-                prefix: "sei",
-            })
+            const wallet = await getWallet(config)
             const [firstAccount] = await wallet.getAccounts()
 
             const client = await SigningCosmWasmClient.connectWithSigner(config.rpc, wallet, {
@@ -666,6 +700,89 @@ const main = () => {
             const txReceipt = await client.execute(firstAccount.address, getLighthouseContract(config.network), Msg, "auto", "",)
 
             spinner.succeed("Metadata revealed")
+            console.log("Transaction hash: " + chalk.green(txReceipt.transactionHash))
+
+        })
+
+    program
+        .command("update-admin")
+        .description("Change the admin of a collection")
+        .argument("<collection>")
+        .argument("<new_admin>")
+        .option("--gas-price <gas_price>", "Gas price to use for transaction  (default: 0.1)")
+        .action(async (collection, admin, options) => {
+
+            let config = loadConfig()
+
+            const wallet = await getWallet(config)
+            const [firstAccount] = await wallet.getAccounts()
+
+            const client = await SigningCosmWasmClient.connectWithSigner(config.rpc, wallet, {
+                gasPrice: GasPrice.fromString(options.gasPrice ? options.gasPrice + "usei" : "0.1usei")
+            })
+
+            //confirm
+            const answers = await inquirer.prompt([{
+                type: 'confirm',
+                name: 'confirm',
+                message: 'Are you sure you want to update the admin of collection ' + collection + ' to ' + admin + '?',
+                default: false
+            }])
+
+            if (!answers.confirm) {
+                console.log("Exiting")
+                return
+            }
+
+            let spinner = ora("Updating admin of collection").start()
+            const Msg = {
+                update_admin: { collection, admin }
+            }
+
+            const txReceipt = await client.execute(firstAccount.address, getLighthouseContract(config.network), Msg, "auto", "",)
+
+            spinner.succeed("Admin of collection " + collection + " updated to " + admin)
+            console.log("Transaction hash: " + chalk.green(txReceipt.transactionHash))
+
+        })
+
+    program
+        .command("renounce-collection")
+        .description("Renounce collection and make it never updatable again")
+        .argument("<collection>")
+        .option("--gas-price <gas_price>", "Gas price to use for transaction  (default: 0.1)")
+        .action(async (collection, options) => {
+
+            let config = loadConfig()
+
+            const wallet = await getWallet(config)
+            const [firstAccount] = await wallet.getAccounts()
+
+            const client = await SigningCosmWasmClient.connectWithSigner(config.rpc, wallet, {
+                gasPrice: GasPrice.fromString(options.gasPrice ? options.gasPrice + "usei" : "0.1usei")
+            })
+
+            //confirm
+            const answers = await inquirer.prompt([{
+                type: 'confirm',
+                name: 'confirm',
+                message: 'Are you sure you want to renounce collection ' + collection +'? you will not be able to update the collection again',
+                default: false
+            }])
+
+            if (!answers.confirm) {
+                console.log("Exiting")
+                return
+            }
+
+            let spinner = ora("Renouncing collection").start()
+            const Msg = {
+                renounce_collection: { collection }
+            }
+
+            const txReceipt = await client.execute(firstAccount.address, getLighthouseContract(config.network), Msg, "auto", "",)
+
+            spinner.succeed("Collection " + collection + " renounced")
             console.log("Transaction hash: " + chalk.green(txReceipt.transactionHash))
 
         })
@@ -742,7 +859,7 @@ const main = () => {
                 }])
                 outputFileName = answers.file
             }
-            fs.writeFileSync(outputFileName, owners.join("\n"))
+            fs.writeFileSync(outputFileName, outputData)
             console.log(`Snapshot saved to ${outputFileName}`);
         });
 
@@ -848,7 +965,8 @@ const main = () => {
         .command("mintersof")
         .description("Get all minters of a collection")
         .argument("<collection>", "Collection address")
-        .action(async (collection) => {
+        .option("--delay <delay>", "Delay between requests (default: 100ms)")
+        .action(async (collection, options) => {
 
             let spinner = ora("Fetching Minter information").start()
 
@@ -869,6 +987,7 @@ const main = () => {
                 })
 
                 minters.push({ token_id: (i + collectionData.start_order).toString(), minter: result })
+                await new Promise(r => setTimeout(r, options.delay ? options.delay : 100));
             }
 
             spinner.succeed("Minters fetched")
@@ -927,9 +1046,7 @@ const main = () => {
 
             let config = loadConfig()
 
-            const wallet = await DirectSecp256k1HdWallet.fromMnemonic(config.mnemonic, {
-                prefix: "sei",
-            })
+            const wallet = await getWallet(config)
             const [firstAccount] = await wallet.getAccounts()
 
             const client = await SigningCosmWasmClient.connectWithSigner(config.rpc, wallet, {
@@ -946,7 +1063,7 @@ const main = () => {
 
             const txReceipt = await client.execute(firstAccount.address, collection, transferMsg, "auto", "",)
 
-            spinner.succeed("NFT minted")
+            spinner.succeed("NFT transferred")
             console.log("Transaction hash: " + chalk.green(txReceipt.transactionHash))
 
         })
@@ -1069,7 +1186,7 @@ const createDefaultConfig = () => {
             token_uri: "",
             royalty_percent: parseFloat(answers.royalty_percentage),
             royalty_wallet: answers.royalty_wallet,
-            iterated_uri: true,
+            iterated_uri: false,
             start_order: 1,
             frozen: false,
             hidden_metadata: false,

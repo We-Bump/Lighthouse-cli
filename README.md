@@ -58,7 +58,7 @@ $ lighthouse init
 ```
 ### `load-wallet`
 
-Load a wallet with mnemonic keyphrase. 
+Load a wallet with mnemonic keyphrase or private key to use in cli.
 
 ```sh
 $ lighthouse load-wallet
@@ -114,6 +114,20 @@ Reveal metadata of a collection
 ```
 $ lighthouse reveal <collection-address>
 ```
+
+### `update-admin`
+
+Update admin of a collection
+```
+$ lighthouse update-admin <collection-address> <new-admin>
+```
+
+### `renounce-collection`
+
+Renounce collection and make it never updatable again
+```
+$ lighthouse renounce-collection <collection-address>
+```
 ### `view`
 
 View configuration of a deployed NFT collection.
@@ -150,13 +164,6 @@ Get the minter of token(s)
 ```
 $ lighthouse minterof <collection-address> <token-ids>
 ```
-### `mintersof`
-
-Get all minters of a collection
-```
-$ lighthouse mintersof <collection-address>
-```
-
 ### `mintersof`
 
 Get all minters of a collection
@@ -259,6 +266,8 @@ Lighthouse relies on a `config.json` file for configuration of NFT collections. 
 }
 ```
 `mnemonic` - memonic keyphrase to use in the Lighthouse
+
+`private_key` - private key to use in the Lighthouse. (mnemonic or private key must be provided)
 
 `rpc` - rpc url of the blockchain
 
